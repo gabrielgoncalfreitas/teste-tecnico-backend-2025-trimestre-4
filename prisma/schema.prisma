@@ -1,0 +1,12 @@
+generator client {
+  provider               = "prisma-client"
+  output                 = "../generated/prisma"
+  generatedFileExtension = "ts"
+  importFileExtension    = "ts"
+  moduleFormat           = "esm"
+  runtime                = "nodejs"
+}
+
+datasource db {
+  provider = "mongodb"
+}
