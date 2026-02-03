@@ -9,3 +9,10 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     ports:
       - "27017:27017"
+
+  elasticmq:
+    image: softwaremill/elasticmq-native
+    restart: always
+    ports:
+      - "9324:9324"
+      - "9325:9325"
