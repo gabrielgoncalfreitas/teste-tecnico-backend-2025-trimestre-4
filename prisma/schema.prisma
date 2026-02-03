@@ -10,3 +10,46 @@ generator client {
 datasource db {
   provider = "mongodb"
 }
+
+enum CrawlStatusEnum {
+  PENDING
+  RUNNING
+  FINISHED
+  FAILED
+}
+
+enum CrawResultStatusEnum {
+  SUCESS
+  ERROR
+}
+
+model crawl {
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  cep_start      String
+  cep_end        String
+  status         CrawlStatusEnum
+  total_ceps     Int             @default(0)
+  processed_ceps Int             @default(0)
+  success_ceps   Int             @default(0)
+  failed_ceps    Int             @default(0)
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
+
+  results crawl_result[]
+
+  @@map("crawls")
+}
+
+model crawl_result {
+  id            String               @id @default(auto()) @map("_id") @db.ObjectId
+  crawl_id      String               @db.ObjectId
+  cep           String
+  data          Json?
+  status        CrawResultStatusEnum
+  error_message String?
+  created_at    DateTime             @default(now())
+
+  crawl crawl @relation(fields: [crawl_id], references: [id])
+
+  @@map("crawl_results")
+}
