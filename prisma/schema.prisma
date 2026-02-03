@@ -21,7 +21,7 @@ enum CrawResultStatusEnum {
 }
 
 model crawl {
-  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  id             String          @id @default(uuid(7)) @map("_id") @db.ObjectId
   cep_start      String
   cep_end        String
   status         CrawlStatusEnum
@@ -38,7 +38,7 @@ model crawl {
 }
 
 model crawl_result {
-  id            String               @id @default(auto()) @map("_id") @db.ObjectId
+  id            String               @id @default(uuid(7)) @map("_id") @db.ObjectId
   crawl_id      String               @db.ObjectId
   cep           String
   data          Json?
