@@ -8,11 +8,11 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     ports:
-      - "27017:27017"
+      - "27017:27017" # MongoDB
 
   elasticmq:
     image: softwaremill/elasticmq-native
     restart: always
     ports:
-      - "9324:9324"
-      - "9325:9325"
+      - "9324:9324" # REST-SQS API
+      - "9325:9325" # UI Dashboard (optional)
