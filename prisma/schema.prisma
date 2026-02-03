@@ -1,14 +1,11 @@
 generator client {
-  provider               = "prisma-client"
-  output                 = "../generated/prisma"
-  generatedFileExtension = "ts"
-  importFileExtension    = "ts"
-  moduleFormat           = "esm"
-  runtime                = "nodejs"
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "mongodb"
+  url      = env("DATABASE_URL")
 }
 
 enum CrawlStatusEnum {
