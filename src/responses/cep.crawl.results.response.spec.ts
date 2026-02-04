@@ -1,5 +1,4 @@
 import { CepCrawlResultsResponse } from './cep.crawl.results.response';
-
 describe('CepCrawlResultsResponse', () => {
   it('should map results and pagination correctly', () => {
     const results = [{ cep: '01001000', status: 'SUCCESS' as any }];

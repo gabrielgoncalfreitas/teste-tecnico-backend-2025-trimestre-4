@@ -1,11 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CepRepository } from './cep.repository';
 import { PrismaService } from '../services/prisma.service';
-
 describe('CepRepository', () => {
   let repository: CepRepository;
   let prisma: jest.Mocked<PrismaService>;
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -22,11 +20,9 @@ describe('CepRepository', () => {
         },
       ],
     }).compile();
-
     repository = module.get(CepRepository);
     prisma = module.get(PrismaService);
   });
-
   it('should findMany ceps', async () => {
     const ceps = ['01001000'];
     await repository.findMany(ceps);
@@ -34,7 +30,6 @@ describe('CepRepository', () => {
       where: { cep: { in: ceps } },
     });
   });
-
   it('should findUnique cep', async () => {
     await repository.findUnique('01001000');
     expect(prisma.cep.findUnique).toHaveBeenCalledWith({

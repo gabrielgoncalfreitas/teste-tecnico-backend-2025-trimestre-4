@@ -2,11 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CrawlRepository } from './crawl.repository';
 import { PrismaService } from '../services/prisma.service';
 import { CrawlStatusEnum } from 'generated/prisma';
-
 describe('CrawlRepository', () => {
   let repository: CrawlRepository;
   let prisma: jest.Mocked<PrismaService>;
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -29,11 +27,9 @@ describe('CrawlRepository', () => {
         },
       ],
     }).compile();
-
     repository = module.get(CrawlRepository);
     prisma = module.get(PrismaService);
   });
-
   it('should create a crawl', async () => {
     const data = {
       cep_start: '0',
@@ -44,14 +40,12 @@ describe('CrawlRepository', () => {
     await repository.create(data);
     expect(prisma.crawl.create).toHaveBeenCalledWith({ data });
   });
-
   it('should findById', async () => {
     await repository.findById('id1');
     expect(prisma.crawl.findUnique).toHaveBeenCalledWith({
       where: { id: 'id1' },
     });
   });
-
   it('should update a crawl', async () => {
     const data = { status: CrawlStatusEnum.FINISHED };
     await repository.update('id1', data);
@@ -60,7 +54,6 @@ describe('CrawlRepository', () => {
       data,
     });
   });
-
   it('should updateWithSelect', async () => {
     const data = { status: CrawlStatusEnum.FINISHED };
     const select = { id: true };
@@ -71,7 +64,6 @@ describe('CrawlRepository', () => {
       select,
     });
   });
-
   it('should createResults', async () => {
     const results = [{ cep: '1', status: 'SUCCESS' }];
     await repository.createResults(results);
@@ -79,13 +71,11 @@ describe('CrawlRepository', () => {
       data: results,
     });
   });
-
   it('should createSingleResult', async () => {
     const data = { crawl_id: 'c1', cep: '1', status: 'SUCCESS' as any };
     await repository.createSingleResult(data);
     expect(prisma.crawl_result.create).toHaveBeenCalledWith({ data });
   });
-
   it('should findResults', async () => {
     await repository.findResults('c1', 0, 10);
     expect(prisma.crawl_result.findMany).toHaveBeenCalledWith({
@@ -95,7 +85,6 @@ describe('CrawlRepository', () => {
       orderBy: { created_at: 'asc' },
     });
   });
-
   it('should countResults', async () => {
     await repository.countResults('c1');
     expect(prisma.crawl_result.count).toHaveBeenCalledWith({

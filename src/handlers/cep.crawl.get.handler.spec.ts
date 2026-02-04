@@ -4,11 +4,9 @@ import { CrawlService } from '../services/crawl.service';
 import { CepCrawlGetResponse } from '../responses/cep.crawl.get.response';
 import { CepCrawlNotFoundResponse } from '../responses/cep.crawl.not-found.response';
 import { CrawlStatusEnum } from 'generated/prisma';
-
 describe('CepCrawlGetHandler', () => {
   let handler: CepCrawlGetHandler;
   let crawlService: jest.Mocked<CrawlService>;
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -21,14 +19,11 @@ describe('CepCrawlGetHandler', () => {
         },
       ],
     }).compile();
-
     handler = module.get(CepCrawlGetHandler);
     crawlService = module.get(CrawlService);
   });
-
   describe('main', () => {
     it('should return CepCrawlGetResponse when crawl exists', async () => {
-      // Arrange
       const crawlId = 'crawl-123';
       const mockCrawl = {
         id: crawlId,
@@ -41,25 +36,15 @@ describe('CepCrawlGetHandler', () => {
         failed_ceps: 0,
       };
       crawlService.findById.mockResolvedValue(mockCrawl as any);
-
-      // Act
       const result = await handler.main({ crawl_id: crawlId });
-
-      // Assert
       expect(result).toBeInstanceOf(CepCrawlGetResponse);
       const getRes = result as CepCrawlGetResponse;
       expect(getRes.data.id).toBe(crawlId);
       expect(getRes.data.status).toBe(CrawlStatusEnum.FINISHED);
     });
-
     it('should return CepCrawlNotFoundResponse when crawl does not exist', async () => {
-      // Arrange
       crawlService.findById.mockResolvedValue(null);
-
-      // Act
       const result = await handler.main({ crawl_id: 'non-existent' });
-
-      // Assert
       expect(result).toBeInstanceOf(CepCrawlNotFoundResponse);
     });
   });

@@ -1,5 +1,4 @@
 import { CepCrawlCreateResponse } from './cep.crawl.create.response';
-
 describe('CepCrawlCreateResponse', () => {
   it('should map properties correctly', () => {
     const data = {

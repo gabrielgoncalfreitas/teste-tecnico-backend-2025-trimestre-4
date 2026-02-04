@@ -7,13 +7,11 @@ import { BadRequestResponse } from '../responses/bad-request.response';
 import { CepCrawlCreateResponse } from '../responses/cep.crawl.create.response';
 import { CepCrawlNotFoundResponse } from '../responses/cep.crawl.not-found.response';
 import { CrawlStatusEnum } from 'generated/prisma';
-
 describe('CepCrawlCreateHandler', () => {
   let handler: CepCrawlCreateHandler;
   let crawlService: jest.Mocked<CrawlService>;
   let cepCacheService: jest.Mocked<CepCacheService>;
   let sqsService: jest.Mocked<SqsService>;
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -40,40 +38,25 @@ describe('CepCrawlCreateHandler', () => {
         },
       ],
     }).compile();
-
     handler = module.get<CepCrawlCreateHandler>(CepCrawlCreateHandler);
     crawlService = module.get(CrawlService);
     cepCacheService = module.get(CepCacheService);
     sqsService = module.get(SqsService);
   });
-
   describe('main', () => {
     it('should return BadRequestResponse when range is too large', async () => {
-      // Arrange
       const body = { cep_start: '01000000', cep_end: '01010001' }; // 10001 difference
-
-      // Act
       const result = await handler.main({ body });
-
-      // Assert
       expect(result).toBeInstanceOf(BadRequestResponse);
       expect(result.message).toBe('Range too large (max 10000)');
     });
-
     it('should return BadRequestResponse when start is greater than end', async () => {
-      // Arrange
       const body = { cep_start: '01001000', cep_end: '01000000' };
-
-      // Act
       const result = await handler.main({ body });
-
-      // Assert
       expect(result).toBeInstanceOf(BadRequestResponse);
       expect(result.message).toBe('cep_start must be <= cep_end');
     });
-
     it('should create a crawl and enqueue missing ceps (Happy Path)', async () => {
-      // Arrange
       const body = { cep_start: '01000000', cep_end: '01000002' }; // 3 CEPs
       const mockCrawl = {
         id: 'crawl-123',
@@ -81,7 +64,6 @@ describe('CepCrawlCreateHandler', () => {
         total_ceps: 3,
         status: CrawlStatusEnum.PENDING,
       };
-
       crawlService.createCrawl.mockResolvedValue(mockCrawl as any);
       cepCacheService.findMany.mockResolvedValue([]); // No cache
       crawlService.findById.mockResolvedValue({
@@ -90,11 +72,7 @@ describe('CepCrawlCreateHandler', () => {
         success_ceps: 0,
         failed_ceps: 0,
       } as any);
-
-      // Act
       const result = await handler.main({ body });
-
-      // Assert
       expect(crawlService.createCrawl).toHaveBeenCalledWith({
         cep_start: '01000000',
         cep_end: '01000002',
@@ -108,9 +86,7 @@ describe('CepCrawlCreateHandler', () => {
       expect(result).toBeInstanceOf(CepCrawlCreateResponse);
       expect((result as CepCrawlCreateResponse).data.id).toBe('crawl-123');
     });
-
     it('should apply cache and not enqueue if all CEPs are cached', async () => {
-      // Arrange
       const body = { cep_start: '01000000', cep_end: '01000000' }; // 1 CEP
       const mockCrawl = {
         id: 'crawl-123',
@@ -119,7 +95,6 @@ describe('CepCrawlCreateHandler', () => {
         status: CrawlStatusEnum.PENDING,
       };
       const cachedCep = { cep: '01000000', found: true };
-
       crawlService.createCrawl.mockResolvedValue(mockCrawl as any);
       cepCacheService.findMany.mockResolvedValue([cachedCep as any]);
       crawlService.findById.mockResolvedValue({
@@ -129,11 +104,7 @@ describe('CepCrawlCreateHandler', () => {
         success_ceps: 1,
         failed_ceps: 0,
       } as any);
-
-      // Act
       const result = await handler.main({ body });
-
-      // Assert
       expect(crawlService.processBulkCachedResults).toHaveBeenCalledWith(
         'crawl-123',
         [cachedCep],
@@ -145,21 +116,14 @@ describe('CepCrawlCreateHandler', () => {
         CrawlStatusEnum.FINISHED,
       );
     });
-
     it('should return CepCrawlNotFoundResponse if crawl goes missing after creation', async () => {
-      // Arrange
       const body = { cep_start: '01000000', cep_end: '01000000' };
       crawlService.createCrawl.mockResolvedValue({ id: 'ghost' } as any);
       cepCacheService.findMany.mockResolvedValue([]);
       crawlService.findById.mockResolvedValue(null);
-
-      // Act
       const result = await handler.main({ body });
-
-      // Assert
       expect(result).toBeInstanceOf(CepCrawlNotFoundResponse);
     });
-
     it('should return BadRequest if CEP format is invalid (NaN)', async () => {
       const result = await handler.main({
         body: { cep_start: 'abc', cep_end: 'def' } as any,

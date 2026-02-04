@@ -1,5 +1,4 @@
 import { CepCrawlNotFoundResponse } from './cep.crawl.not-found.response';
-
 describe('CepCrawlNotFoundResponse', () => {
   it('should have code 404', () => {
     const response = new CepCrawlNotFoundResponse();
