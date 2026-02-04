@@ -16,6 +16,9 @@ import { CepCrawlResultsController } from './controllers/cep.crawl.results.contr
 import { HealthController } from './controllers/health.controller';
 import { CrawlWorker } from './workers/crawl.worker';
 
+import { CepRepository } from './repositories/cep.repository';
+import { CrawlRepository } from './repositories/crawl.repository';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -41,6 +44,8 @@ import { CrawlWorker } from './workers/crawl.worker';
     CepCrawlGetHandler,
     CepCrawlResultsHandler,
     CrawlWorker,
+    CepRepository,
+    CrawlRepository,
   ],
 })
 export class AppModule {}
