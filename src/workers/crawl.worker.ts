@@ -42,38 +42,32 @@ export class CrawlWorker implements OnModuleInit {
 
     while (this.isPolling) {
       try {
-        const messages = await this.sqsService.receiveMessages(10, 20); // Long polling
+        const messages = await this.sqsService.receiveMessages(10, 20); 
         if (messages.length > 0) {
-          // Process sequentially to respect rate limiting (1 req/sec)
           for (const msg of messages) {
             await this.processMessage(msg);
           }
         }
       } catch (error) {
         this.logger.error('Polling error', error);
-        await new Promise((resolve) => setTimeout(resolve, 5000)); // Backoff
+        await new Promise((resolve) => setTimeout(resolve, 5000)); 
       }
     }
   }
 
   async processMessage(message: any) {
     try {
-      // Rate limiting: sleep for 400ms ensures ~150 req/min per worker instance
-      // 400ms is a balanced delay for ViaCEP/OpenCEP.
       await new Promise((resolve) => setTimeout(resolve, 400));
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
       const body = JSON.parse(message.Body) as CrawlPayload;
       const { crawl_id, cep } = body;
       const cleanCep = cep.replace(/\D/g, '');
 
-      // Fetch data
       let status: CrawResultStatusEnum = CrawResultStatusEnum.SUCCESS;
       let data: ViaCepResponse | null = null;
       let errorMessage: string | null = null;
       let shouldRetry = false;
 
-      // 2. Fetch from API (Handler already checked cache)
       try {
         data = await this.viaCepService.getCep(cep);
         if (!data || data.erro) {
@@ -81,7 +75,6 @@ export class CrawlWorker implements OnModuleInit {
           errorMessage = 'CEP not found';
           data = null;
 
-          // 3. Save "Not Found" to Cache (Negative Cache)
           await this.prisma.cep
             .create({
               data: {
@@ -89,9 +82,8 @@ export class CrawlWorker implements OnModuleInit {
                 found: false,
               },
             })
-            .catch(() => {}); // Ignore collisions
+            .catch(() => {}); 
         } else {
-          // 3. Save to Cache
           await this.prisma.cep
             .create({
               data: {
@@ -108,7 +100,6 @@ export class CrawlWorker implements OnModuleInit {
               },
             })
             .catch((err: any) => {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               if (err.code !== 'P2002') {
                 this.logger.warn(`Failed to save cache for CEP ${cep}`, err);
               }
@@ -116,11 +107,9 @@ export class CrawlWorker implements OnModuleInit {
         }
       } catch (e: any) {
         status = CrawResultStatusEnum.ERROR;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
         errorMessage = e.message || 'Unknown Error';
         shouldRetry = true;
         this.logger.warn(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           `Transient error fetching CEP ${cep}, triggering retry: ${e.message}`,
         );
       }
@@ -129,69 +118,55 @@ export class CrawlWorker implements OnModuleInit {
         throw new Error(`Retryable error: ${errorMessage}`);
       }
 
-      // Save Result (Only if not retrying)
       await this.prisma.crawl_result.create({
         data: {
           crawl_id,
           cep,
           status,
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           data: (data as any) ?? undefined,
           error_message: errorMessage,
         },
       });
 
-      // Update Stats (Atomic increment)
 
       const updateData: any = {
         processed_ceps: { increment: 1 },
       };
 
       if (status === CrawResultStatusEnum.SUCCESS) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         updateData.success_ceps = { increment: 1 };
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         updateData.failed_ceps = { increment: 1 };
       }
 
       const updatedCrawl = await this.prisma.crawl.update({
         where: { id: crawl_id },
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         data: updateData,
         select: { total_ceps: true, processed_ceps: true },
       });
 
-      // Update status to FINISHED if all processed
       if (updatedCrawl.processed_ceps >= updatedCrawl.total_ceps) {
         await this.prisma.crawl.update({
           where: { id: crawl_id },
           data: { status: CrawlStatusEnum.FINISHED },
         });
       } else {
-        // Mark as RUNNING if it was PENDING
         await this.prisma.crawl.updateMany({
           where: { id: crawl_id, status: CrawlStatusEnum.PENDING },
           data: { status: CrawlStatusEnum.RUNNING },
         });
       }
 
-      // Delete successfully processed (or permanently failed) message
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
       await this.sqsService.deleteMessage(message.ReceiptHandle);
     } catch (error: any) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       if (error.message.startsWith('Retryable error')) {
-        // Logs already handled or minimal log
       } else {
         this.logger.error(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           `Failed to process message ${message.MessageId}`,
           error,
         );
       }
-      // Do NOT delete message, let SQS retry
     }
   }
 }

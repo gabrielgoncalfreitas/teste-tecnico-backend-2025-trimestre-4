@@ -19,7 +19,6 @@ export class CepCrawlResultsHandler {
   }) {
     const skip = (page - 1) * limit;
 
-    // Check if crawl exists
     const crawl = await this.prisma.crawl.findUnique({
       where: { id: crawl_id },
     });
@@ -41,17 +40,13 @@ export class CepCrawlResultsHandler {
     ]);
 
     const dtos: CepCrawlResultsGetDTO[] = results.map((r) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const data = r.data as any;
       return {
         cep: r.cep,
         status: r.status,
         error: r.error_message ?? undefined,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         logradouro: data?.logradouro,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         cidade: data?.localidade,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         uf: data?.uf,
       };
     });

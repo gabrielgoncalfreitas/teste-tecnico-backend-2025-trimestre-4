@@ -54,7 +54,6 @@ export class SqsService implements OnModuleInit {
       await this.sqsClient.send(command);
       this.logger.log(`Queue ${queueName} ensured.`);
     } catch (error: any) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.error(`Error creating queue: ${error.message}`);
     }
   }
@@ -67,14 +66,12 @@ export class SqsService implements OnModuleInit {
       });
       await this.sqsClient.send(command);
     } catch (error: any) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.error(`Error sending message to SQS: ${error.message}`);
       throw error;
     }
   }
 
   async sendMessageBatch(entries: any[]) {
-    // Implement batch sending logic (max 10 per batch for SQS)
     const batchSize = 10;
     for (let i = 0; i < entries.length; i += batchSize) {
       const batch = entries.slice(i, i + batchSize).map((entry, index) => ({
@@ -90,9 +87,7 @@ export class SqsService implements OnModuleInit {
           }),
         );
       } catch (error: any) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         this.logger.error(`Error sending batch to SQS: ${error.message}`);
-        // Depending on requirements, might want to retry or throw
       }
     }
   }
@@ -107,7 +102,6 @@ export class SqsService implements OnModuleInit {
       const response = await this.sqsClient.send(command);
       return response.Messages || [];
     } catch (error: any) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.error(`Error receiving messages from SQS: ${error.message}`);
       return [];
     }
@@ -121,7 +115,6 @@ export class SqsService implements OnModuleInit {
       });
       await this.sqsClient.send(command);
     } catch (error: any) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.error(`Error deleting message from SQS: ${error.message}`);
     }
   }

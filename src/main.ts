@@ -26,7 +26,6 @@ async function bootstrap() {
   const roleArg = args.find((arg) => arg.startsWith('--role='));
   const role = roleArg ? roleArg.split('=')[1] : null;
 
-  // Default to running everything if no role specified (or local dev)
   const runApi = !role || role === 'api';
 
   if (runApi) {

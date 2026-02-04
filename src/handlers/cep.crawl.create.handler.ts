@@ -28,7 +28,6 @@ export class CepCrawlCreateHandler {
       );
     }
 
-    // Arbitrary limit check if needed, e.g., max 1000 items
     if (end - start > 10000) {
       throw new BadRequestException('Range too large (max 10000)');
     }
@@ -44,7 +43,6 @@ export class CepCrawlCreateHandler {
       },
     });
 
-    // 2. Bulk Lookup in Cache
     const allCepsInRange: string[] = [];
     for (let i = start; i <= end; i++) {
       allCepsInRange.push(i.toString().padStart(8, '0'));
@@ -57,7 +55,6 @@ export class CepCrawlCreateHandler {
     const cachedMap = new Map(cachedCeps.map((c) => [c.cep, c]));
     const missingCeps = allCepsInRange.filter((c) => !cachedMap.has(c));
 
-    // 3. Process Cached Results Immediately
     if (cachedCeps.length > 0) {
       this.logger.log(
         `Found ${cachedCeps.length} cached CEPs for crawl ${crawl.id}. Processing instantly.`,
@@ -73,7 +70,6 @@ export class CepCrawlCreateHandler {
         error_message: c.found ? null : 'CEP not found (cached)',
       }));
 
-      // Create results in bulk
       await this.prisma.crawl_result.createMany({
         data: resultsToCreate,
       });
@@ -95,7 +91,6 @@ export class CepCrawlCreateHandler {
       });
     }
 
-    // 4. Enqueue Only Missing CEPs
     if (missingCeps.length > 0) {
       const cepsToEnqueue = missingCeps.map((cep) => ({
         crawl_id: crawl.id,
@@ -110,7 +105,6 @@ export class CepCrawlCreateHandler {
       this.logger.log(`All CEPs for crawl ${crawl.id} were found in cache.`);
     }
 
-    // Refetch crawl for the final response to ensure accurate counts
     const finalCrawl = await this.prisma.crawl.findUnique({
       where: { id: crawl.id },
     });

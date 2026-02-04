@@ -20,13 +20,12 @@ export interface ViaCepResponse {
 @Injectable()
 export class ViaCepService {
   private readonly logger = new Logger(ViaCepService.name);
-  private readonly viaCepUrl = 'http://viacep.com.br/ws';
-  private readonly openCepUrl = 'https://opencep.com/v1';
+  private readonly viaCepUrl = 'http:
+  private readonly openCepUrl = 'https:
 
   async getCep(cep: string): Promise<ViaCepResponse | null> {
     const cleanCep = cep.replace(/\D/g, '');
 
-    // 1. Try ViaCEP (Original)
     try {
       const response = await axios.get<ViaCepResponse>(
         `${this.viaCepUrl}/${cleanCep}/json/`,
@@ -39,7 +38,6 @@ export class ViaCepService {
       this.logger.warn(`ViaCEP failed for ${cep}, trying OpenCEP...`);
     }
 
-    // 2. Fallback to OpenCEP
     try {
       const response = await axios.get<ViaCepResponse>(
         `${this.openCepUrl}/${cleanCep}.json`,
