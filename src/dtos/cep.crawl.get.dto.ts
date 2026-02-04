@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class CepCrawlGetDTO {
   @ApiProperty({
-    example: '60d5ec49f1b2c832964e5262',
+    example: '019c2a0f-d660-70e0-a082-8443fa76ba3f',
     description: 'ID do Crawl',
   })
   id: string;
