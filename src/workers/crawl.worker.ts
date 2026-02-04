@@ -106,7 +106,7 @@ export class CrawlWorker implements OnModuleInit {
         crawlId: crawl_id,
         cep,
         status,
-        data,
+        data: (data as any) ?? undefined,
         errorMessage: errorMessage ?? undefined,
       });
 
