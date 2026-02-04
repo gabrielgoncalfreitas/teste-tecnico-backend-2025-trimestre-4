@@ -51,6 +51,8 @@ describe('CepCrawlResultsHandler', () => {
         crawl_id: crawlId,
         page: 1,
         take: 10,
+        cep_start: '01000000',
+        q: 'Sé',
       });
 
       expect(result).toBeInstanceOf(CepCrawlResultsResponse);
@@ -58,12 +60,17 @@ describe('CepCrawlResultsHandler', () => {
       expect(res.data).toHaveLength(1);
       expect(res.data[0].cep).toBe('01000000');
       expect(res.total).toBe(1);
-      expect(crawlService.findResults).toHaveBeenCalledWith(crawlId, 0, 10, {
-        cep_start: undefined,
-        cep_end: undefined,
-        status: undefined,
-        q: undefined,
-      });
+      expect(res.cep_start).toBe('01000000');
+      expect(res.q).toBe('Sé');
+      expect(crawlService.findResults).toHaveBeenCalledWith(
+        crawlId,
+        0,
+        10,
+        expect.objectContaining({
+          cep_start: '01000000',
+          q: 'Sé',
+        }),
+      );
     });
 
     it('should pass search query q to crawlService', async () => {

@@ -6,6 +6,13 @@ import { HttpResponseMessages } from 'src/constants/http-response-messages.const
 
 const res = HttpResponseMessages[HttpStatus.OK].ok;
 
+export interface CepCrawlResultsFilters {
+  cep_start?: string;
+  cep_end?: string;
+  status?: string;
+  q?: string;
+}
+
 export class CepCrawlResultsResponse implements Response<
   CepCrawlResultsGetDTO[]
 > {
@@ -33,15 +40,32 @@ export class CepCrawlResultsResponse implements Response<
   @ApiProperty({ example: 50 })
   total: number;
 
+  @ApiProperty({ required: false, example: '01001000' })
+  cep_start?: string;
+
+  @ApiProperty({ required: false, example: '01001099' })
+  cep_end?: string;
+
+  @ApiProperty({ required: false, example: 'SUCCESS' })
+  status?: string;
+
+  @ApiProperty({ required: false, example: 'Praça da Sé' })
+  q?: string;
+
   constructor(
     page: number,
     take: number,
     total: number,
     data: CepCrawlResultsGetDTO[],
+    filters?: CepCrawlResultsFilters,
   ) {
     this.page = page;
     this.take = take;
     this.total = total;
+    this.cep_start = filters?.cep_start;
+    this.cep_end = filters?.cep_end;
+    this.status = filters?.status;
+    this.q = filters?.q;
     this.data = data;
   }
 }
