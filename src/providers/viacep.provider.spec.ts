@@ -1,11 +1,19 @@
+import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { ViaCepProvider } from './viacep.provider';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 describe('ViaCepProvider', () => {
   let provider: ViaCepProvider;
+  let configService: jest.Mocked<ConfigService>;
   beforeEach(() => {
-    provider = new ViaCepProvider();
+    configService = {
+      get: jest.fn().mockImplementation((key: string) => {
+        if (key === 'VIACEP_URL') return 'https://viacep.com.br/ws';
+        return null;
+      }),
+    } as any;
+    provider = new ViaCepProvider(configService);
     jest.clearAllMocks();
   });
   it('should return address data when request is successful', async () => {

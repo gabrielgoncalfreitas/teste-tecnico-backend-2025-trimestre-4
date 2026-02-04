@@ -20,28 +20,40 @@ export class SqsService implements OnModuleInit {
 
   async onModuleInit() {
     const isDocker = existsSync('/.dockerenv');
-    const endpoint = isDocker
-      ? this.configService.get<string>('DOCKER_SQS_ENDPOINT')
-      : this.configService.get<string>('SQS_ENDPOINT') ||
-        'http://localhost:9324';
+    const endpoint = (
+      isDocker
+        ? this.configService.get<string>('DOCKER_SQS_ENDPOINT')
+        : this.configService.get<string>('SQS_ENDPOINT')
+    ) as string;
 
     this.sqsClient = new SQSClient({
-      region: this.configService.get('AWS_REGION') || 'us-east-1',
+      region: this.configService.get<string>('AWS_REGION') as string,
       endpoint,
       credentials: {
-        accessKeyId: this.configService.get('AWS_ACCESS_KEY_ID') || 'x',
-        secretAccessKey: this.configService.get('AWS_SECRET_ACCESS_KEY') || 'x',
+        accessKeyId: this.configService.get<string>(
+          'AWS_ACCESS_KEY_ID',
+        ) as string,
+        secretAccessKey: this.configService.get<string>(
+          'AWS_SECRET_ACCESS_KEY',
+        ) as string,
       },
     });
 
-    const queueName = 'cep-crawl-queue';
-    const queueBaseUrl = isDocker
-      ? this.configService.get<string>('DOCKER_SQS_ENDPOINT')
-      : this.configService.get<string>('SQS_ENDPOINT');
+    const queueName = this.configService.get<string>(
+      'SQS_QUEUE_NAME',
+    ) as string;
+    const accountId = this.configService.get<string>(
+      'AWS_ACCOUNT_ID',
+    ) as string;
+    const queueBaseUrl = (
+      isDocker
+        ? this.configService.get<string>('DOCKER_SQS_ENDPOINT')
+        : this.configService.get<string>('SQS_ENDPOINT')
+    ) as string;
 
     this.queueUrl =
-      this.configService.get('SQS_QUEUE_URL') ||
-      `${queueBaseUrl}/000000000000/${queueName}`;
+      this.configService.get<string>('SQS_QUEUE_URL') ||
+      `${queueBaseUrl}/${accountId}/${queueName}`;
 
     await this.createQueueIfNotExists(queueName);
   }

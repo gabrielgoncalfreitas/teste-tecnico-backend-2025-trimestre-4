@@ -1,11 +1,19 @@
+import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { OpenCepProvider } from './opencep.provider';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 describe('OpenCepProvider', () => {
   let provider: OpenCepProvider;
+  let configService: jest.Mocked<ConfigService>;
   beforeEach(() => {
-    provider = new OpenCepProvider();
+    configService = {
+      get: jest.fn().mockImplementation((key: string) => {
+        if (key === 'OPENCEP_URL') return 'https://opencep.com/v1';
+        return null;
+      }),
+    } as any;
+    provider = new OpenCepProvider(configService);
     jest.clearAllMocks();
   });
   it('should return address data when request is successful', async () => {

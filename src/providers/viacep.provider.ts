@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { AddressProvider } from '../interfaces/address-provider.interface';
 import { AddressData } from '../interfaces/address.interface';
@@ -6,7 +7,11 @@ import { AddressData } from '../interfaces/address.interface';
 @Injectable()
 export class ViaCepProvider implements AddressProvider {
   private readonly logger = new Logger(ViaCepProvider.name);
-  private readonly url = 'https://viacep.com.br/ws';
+  private readonly url: string;
+
+  constructor(private readonly configService: ConfigService) {
+    this.url = this.configService.get<string>('VIACEP_URL') as string;
+  }
 
   getName(): string {
     return 'ViaCEP';
