@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/services/prisma.service';
+import { CrawlService } from 'src/services/crawl.service';
 import { CepCrawlNotFoundResponse } from 'src/responses/cep.crawl.not-found.response';
 import { CepCrawlResultsResponse } from 'src/responses/cep.crawl.results.response';
 import { CepCrawlResultsGetDTO } from 'src/dtos/cep.crawl.results.get.dto';
 
 @Injectable()
 export class CepCrawlResultsHandler {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly crawlService: CrawlService) {}
 
   async main({
     crawl_id,
@@ -19,24 +19,15 @@ export class CepCrawlResultsHandler {
   }) {
     const skip = (page - 1) * limit;
 
-    const crawl = await this.prisma.crawl.findUnique({
-      where: { id: crawl_id },
-    });
+    const crawl = await this.crawlService.findById(crawl_id);
 
     if (!crawl) {
       return new CepCrawlNotFoundResponse();
     }
 
     const [results, total] = await Promise.all([
-      this.prisma.crawl_result.findMany({
-        where: { crawl_id },
-        skip,
-        take: limit,
-        orderBy: { created_at: 'asc' },
-      }),
-      this.prisma.crawl_result.count({
-        where: { crawl_id },
-      }),
+      this.crawlService.findResults(crawl_id, skip, limit),
+      this.crawlService.countResults(crawl_id),
     ]);
 
     const dtos: CepCrawlResultsGetDTO[] = results.map((r) => {

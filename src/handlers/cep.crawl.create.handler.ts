@@ -1,16 +1,17 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { PrismaService } from 'src/services/prisma.service';
 import { CepCrawlCreateDTO } from 'src/dtos/cep.crawl.create.dto';
 import { CepCrawlCreateResponse } from 'src/responses/cep.crawl.create.response';
 import { SqsService } from 'src/services/sqs.service';
-import { CrawlStatusEnum, CrawResultStatusEnum } from 'generated/prisma';
+import { CrawlService } from 'src/services/crawl.service';
+import { CepCacheService } from 'src/services/cep-cache.service';
 
 @Injectable()
 export class CepCrawlCreateHandler {
   private readonly logger = new Logger(CepCrawlCreateHandler.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly crawlService: CrawlService,
+    private readonly cepCacheService: CepCacheService,
     private readonly sqsService: SqsService,
   ) {}
 
@@ -18,100 +19,38 @@ export class CepCrawlCreateHandler {
     const start = parseInt(body.cep_start);
     const end = parseInt(body.cep_end);
 
-    if (isNaN(start) || isNaN(end)) {
-      throw new BadRequestException('Invalid CEP format');
-    }
-
-    if (start > end) {
-      throw new BadRequestException(
-        'cep_start must be less than or equal to cep_end',
-      );
-    }
-
-    if (end - start > 10000) {
-      throw new BadRequestException('Range too large (max 10000)');
-    }
+    this.validateRange(start, end);
 
     const totalCeps = end - start + 1;
-
-    const crawl = await this.prisma.crawl.create({
-      data: {
-        cep_start: body.cep_start,
-        cep_end: body.cep_end,
-        status: CrawlStatusEnum.PENDING,
-        total_ceps: totalCeps,
-      },
+    const crawl = await this.crawlService.createCrawl({
+      cep_start: body.cep_start,
+      cep_end: body.cep_end,
+      total_ceps: totalCeps,
     });
 
-    const allCepsInRange: string[] = [];
-    for (let i = start; i <= end; i++) {
-      allCepsInRange.push(i.toString().padStart(8, '0'));
-    }
-
-    const cachedCeps = await this.prisma.cep.findMany({
-      where: { cep: { in: allCepsInRange } },
-    });
+    const allCepsInRange = this.generateCepRange(start, end);
+    const cachedCeps = await this.cepCacheService.findMany(allCepsInRange);
 
     const cachedMap = new Map(cachedCeps.map((c) => [c.cep, c]));
     const missingCeps = allCepsInRange.filter((c) => !cachedMap.has(c));
 
     if (cachedCeps.length > 0) {
       this.logger.log(
-        `Found ${cachedCeps.length} cached CEPs for crawl ${crawl.id}. Processing instantly.`,
+        `Found ${cachedCeps.length} cached CEPs for crawl ${crawl.id}.`,
       );
-
-      const resultsToCreate = cachedCeps.map((c) => ({
-        crawl_id: crawl.id,
-        cep: c.cep,
-        status: c.found
-          ? CrawResultStatusEnum.SUCCESS
-          : CrawResultStatusEnum.ERROR,
-        data: c.found ? (c as any) : undefined,
-        error_message: c.found ? null : 'CEP not found (cached)',
-      }));
-
-      await this.prisma.crawl_result.createMany({
-        data: resultsToCreate,
-      });
-
-      const successCount = cachedCeps.filter((c) => c.found).length;
-      const errorCount = cachedCeps.length - successCount;
-
-      await this.prisma.crawl.update({
-        where: { id: crawl.id },
-        data: {
-          processed_ceps: { increment: cachedCeps.length },
-          success_ceps: { increment: successCount },
-          failed_ceps: { increment: errorCount },
-          status:
-            cachedCeps.length === totalCeps
-              ? CrawlStatusEnum.FINISHED
-              : CrawlStatusEnum.RUNNING,
-        },
-      });
+      await this.crawlService.processBulkCachedResults(
+        crawl.id,
+        cachedCeps,
+        cachedCeps.length === totalCeps,
+      );
     }
 
     if (missingCeps.length > 0) {
-      const cepsToEnqueue = missingCeps.map((cep) => ({
-        crawl_id: crawl.id,
-        cep,
-      }));
-
-      this.logger.log(
-        `Enqueueing ${cepsToEnqueue.length} missing CEPs for crawl ${crawl.id}`,
-      );
-      await this.sqsService.sendMessageBatch(cepsToEnqueue);
-    } else if (cachedCeps.length === totalCeps) {
-      this.logger.log(`All CEPs for crawl ${crawl.id} were found in cache.`);
+      await this.enqueueMissingCeps(crawl.id, missingCeps);
     }
 
-    const finalCrawl = await this.prisma.crawl.findUnique({
-      where: { id: crawl.id },
-    });
-
-    if (!finalCrawl) {
-      throw new Error(`Crawl ${crawl.id} not found after processing cache.`);
-    }
+    const finalCrawl = await this.crawlService.findById(crawl.id);
+    if (!finalCrawl) throw new Error('Crawl not found');
 
     return new CepCrawlCreateResponse({
       id: finalCrawl.id,
@@ -123,5 +62,33 @@ export class CepCrawlCreateHandler {
       success: finalCrawl.success_ceps,
       errors: finalCrawl.failed_ceps,
     });
+  }
+
+  private validateRange(start: number, end: number) {
+    if (isNaN(start) || isNaN(end))
+      throw new BadRequestException('Invalid CEP format');
+    if (start > end)
+      throw new BadRequestException('cep_start must be <= cep_end');
+    if (end - start > 10000)
+      throw new BadRequestException('Range too large (max 10000)');
+  }
+
+  private generateCepRange(start: number, end: number): string[] {
+    const range: string[] = [];
+    for (let i = start; i <= end; i++) {
+      range.push(i.toString().padStart(8, '0'));
+    }
+    return range;
+  }
+
+  private async enqueueMissingCeps(crawlId: string, missingCeps: string[]) {
+    const cepsToEnqueue = missingCeps.map((cep) => ({
+      crawl_id: crawlId,
+      cep,
+    }));
+    this.logger.log(
+      `Enqueueing ${cepsToEnqueue.length} missing CEPs for crawl ${crawlId}`,
+    );
+    await this.sqsService.sendMessageBatch(cepsToEnqueue);
   }
 }

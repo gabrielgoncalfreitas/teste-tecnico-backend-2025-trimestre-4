@@ -1,8 +1,10 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { SqsService } from '../services/sqs.service';
-import { ViaCepService, ViaCepResponse } from '../services/viacep.service';
-import { PrismaService } from '../services/prisma.service';
-import { CrawlStatusEnum, CrawResultStatusEnum } from 'generated/prisma';
+import { AddressService } from '../services/address.service';
+import { CrawlService } from '../services/crawl.service';
+import { CepCacheService } from '../services/cep-cache.service';
+import { AddressData } from '../contracts/address.contract';
+import { CrawResultStatusEnum } from 'generated/prisma';
 
 interface CrawlPayload {
   crawl_id: string;
@@ -16,8 +18,9 @@ export class CrawlWorker implements OnModuleInit {
 
   constructor(
     private readonly sqsService: SqsService,
-    private readonly viaCepService: ViaCepService,
-    private readonly prisma: PrismaService,
+    private readonly addressService: AddressService,
+    private readonly crawlService: CrawlService,
+    private readonly cepCacheService: CepCacheService,
   ) {}
 
   onModuleInit() {
@@ -42,7 +45,7 @@ export class CrawlWorker implements OnModuleInit {
 
     while (this.isPolling) {
       try {
-        const messages = await this.sqsService.receiveMessages(10, 20); 
+        const messages = await this.sqsService.receiveMessages(10, 20);
         if (messages.length > 0) {
           for (const msg of messages) {
             await this.processMessage(msg);
@@ -50,7 +53,7 @@ export class CrawlWorker implements OnModuleInit {
         }
       } catch (error) {
         this.logger.error('Polling error', error);
-        await new Promise((resolve) => setTimeout(resolve, 5000)); 
+        await new Promise((resolve) => setTimeout(resolve, 5000));
       }
     }
   }
@@ -61,49 +64,21 @@ export class CrawlWorker implements OnModuleInit {
 
       const body = JSON.parse(message.Body) as CrawlPayload;
       const { crawl_id, cep } = body;
-      const cleanCep = cep.replace(/\D/g, '');
 
       let status: CrawResultStatusEnum = CrawResultStatusEnum.SUCCESS;
-      let data: ViaCepResponse | null = null;
+      let data: AddressData | null = null;
       let errorMessage: string | null = null;
       let shouldRetry = false;
 
       try {
-        data = await this.viaCepService.getCep(cep);
+        data = await this.addressService.getAddress(cep);
         if (!data || data.erro) {
           status = CrawResultStatusEnum.ERROR;
           errorMessage = 'CEP not found';
           data = null;
-
-          await this.prisma.cep
-            .create({
-              data: {
-                cep: cleanCep,
-                found: false,
-              },
-            })
-            .catch(() => {}); 
+          await this.cepCacheService.save(cep, false);
         } else {
-          await this.prisma.cep
-            .create({
-              data: {
-                cep: cleanCep,
-                logradouro: data.logradouro,
-                compl: data.complemento,
-                bairro: data.bairro,
-                localidade: data.localidade,
-                uf: data.uf,
-                ibge: data.ibge,
-                gia: data.gia,
-                ddd: data.ddd,
-                siafi: data.siafi,
-              },
-            })
-            .catch((err: any) => {
-              if (err.code !== 'P2002') {
-                this.logger.warn(`Failed to save cache for CEP ${cep}`, err);
-              }
-            });
+          await this.cepCacheService.save(cep, true, data);
         }
       } catch (e: any) {
         status = CrawResultStatusEnum.ERROR;
@@ -114,54 +89,19 @@ export class CrawlWorker implements OnModuleInit {
         );
       }
 
-      if (shouldRetry) {
-        throw new Error(`Retryable error: ${errorMessage}`);
-      }
+      if (shouldRetry) throw new Error(`Retryable error: ${errorMessage}`);
 
-      await this.prisma.crawl_result.create({
-        data: {
-          crawl_id,
-          cep,
-          status,
-
-          data: (data as any) ?? undefined,
-          error_message: errorMessage,
-        },
+      await this.crawlService.saveSingleResult({
+        crawlId: crawl_id,
+        cep,
+        status,
+        data,
+        errorMessage: errorMessage ?? undefined,
       });
-
-
-      const updateData: any = {
-        processed_ceps: { increment: 1 },
-      };
-
-      if (status === CrawResultStatusEnum.SUCCESS) {
-        updateData.success_ceps = { increment: 1 };
-      } else {
-        updateData.failed_ceps = { increment: 1 };
-      }
-
-      const updatedCrawl = await this.prisma.crawl.update({
-        where: { id: crawl_id },
-        data: updateData,
-        select: { total_ceps: true, processed_ceps: true },
-      });
-
-      if (updatedCrawl.processed_ceps >= updatedCrawl.total_ceps) {
-        await this.prisma.crawl.update({
-          where: { id: crawl_id },
-          data: { status: CrawlStatusEnum.FINISHED },
-        });
-      } else {
-        await this.prisma.crawl.updateMany({
-          where: { id: crawl_id, status: CrawlStatusEnum.PENDING },
-          data: { status: CrawlStatusEnum.RUNNING },
-        });
-      }
 
       await this.sqsService.deleteMessage(message.ReceiptHandle);
     } catch (error: any) {
-      if (error.message.startsWith('Retryable error')) {
-      } else {
+      if (!error.message.startsWith('Retryable error')) {
         this.logger.error(
           `Failed to process message ${message.MessageId}`,
           error,
