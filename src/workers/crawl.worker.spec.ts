@@ -142,14 +142,21 @@ describe('CrawlWorker', () => {
         Body: JSON.stringify({ crawl_id: 'c1', cep: '01001000' }),
       };
       sqsService.receiveMessages.mockResolvedValueOnce([mockMessage]);
-      sqsService.receiveMessages.mockResolvedValue([]);
+      sqsService.receiveMessages.mockResolvedValueOnce([mockMessage]);
+      sqsService.receiveMessages.mockImplementation(async () => {
+        worker['isPolling'] = false;
+        return [];
+      });
       const processSpy = jest
         .spyOn(worker as any, 'processMessage')
         .mockResolvedValue(undefined);
       const pollPromise = worker.startPolling();
       await Promise.resolve();
       await Promise.resolve();
+      // Flush staggered timeouts inside Promise.all
+      jest.runAllTimers();
       await Promise.resolve();
+
       worker['isPolling'] = false;
       await pollPromise;
       expect(sqsService.receiveMessages).toHaveBeenCalled();
