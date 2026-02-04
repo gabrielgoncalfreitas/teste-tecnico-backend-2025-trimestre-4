@@ -5,12 +5,14 @@ import { CepCrawlCreateDTO } from 'src/dtos/cep.crawl.create.dto';
 import { CepCrawlCreateHandler } from 'src/handlers/cep.crawl.create.handler';
 import { ApiCreateResponse } from 'src/decorators/response/api.create.response.decorator';
 
+import { CepCrawlCreateResponse } from 'src/responses/cep.crawl.create.response';
+
 @ApiTags('CEP Crawl')
 @Controller('/cep/crawl')
 export class CepCrawlCreateController {
   constructor(private readonly handler: CepCrawlCreateHandler) {}
 
-  @ApiCreateResponse(CepCrawlCreateDTO)
+  @ApiCreateResponse(CepCrawlCreateResponse)
   @Post()
   async main(@Res() res: Response, @Body() body: CepCrawlCreateDTO) {
     const result = await this.handler.main({ body });

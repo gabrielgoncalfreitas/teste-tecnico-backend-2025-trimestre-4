@@ -33,4 +33,12 @@ export const HttpResponseMessages = {
       isError: true,
     },
   },
+  [HttpStatus.BAD_REQUEST]: {
+    bad_request: {
+      statusCode: HttpStatus.BAD_REQUEST,
+      statusEnum: 'BAD_REQUEST',
+      message: 'Requisição inválida',
+      isError: true,
+    },
+  },
 };

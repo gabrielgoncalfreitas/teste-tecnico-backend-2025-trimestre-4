@@ -1,9 +1,11 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CepCrawlCreateDTO } from 'src/dtos/cep.crawl.create.dto';
 import { CepCrawlCreateResponse } from 'src/responses/cep.crawl.create.response';
 import { SqsService } from 'src/services/sqs.service';
 import { CrawlService } from 'src/services/crawl.service';
 import { CepCacheService } from 'src/services/cep-cache.service';
+import { BadRequestResponse } from 'src/responses/bad-request.response';
+import { CepCrawlNotFoundResponse } from 'src/responses/cep.crawl.not-found.response';
 
 @Injectable()
 export class CepCrawlCreateHandler {
@@ -19,7 +21,8 @@ export class CepCrawlCreateHandler {
     const start = parseInt(body.cep_start);
     const end = parseInt(body.cep_end);
 
-    this.validateRange(start, end);
+    const validationError = this.validateRange(start, end);
+    if (validationError) return validationError;
 
     const totalCeps = end - start + 1;
     const crawl = await this.crawlService.createCrawl({
@@ -50,7 +53,7 @@ export class CepCrawlCreateHandler {
     }
 
     const finalCrawl = await this.crawlService.findById(crawl.id);
-    if (!finalCrawl) throw new Error('Crawl not found');
+    if (!finalCrawl) return new CepCrawlNotFoundResponse();
 
     return new CepCrawlCreateResponse({
       id: finalCrawl.id,
@@ -64,13 +67,14 @@ export class CepCrawlCreateHandler {
     });
   }
 
-  private validateRange(start: number, end: number) {
+  private validateRange(start: number, end: number): BadRequestResponse | null {
     if (isNaN(start) || isNaN(end))
-      throw new BadRequestException('Invalid CEP format');
+      return new BadRequestResponse('Invalid CEP format');
     if (start > end)
-      throw new BadRequestException('cep_start must be <= cep_end');
+      return new BadRequestResponse('cep_start must be <= cep_end');
     if (end - start > 10000)
-      throw new BadRequestException('Range too large (max 10000)');
+      return new BadRequestResponse('Range too large (max 10000)');
+    return null;
   }
 
   private generateCepRange(start: number, end: number): string[] {
