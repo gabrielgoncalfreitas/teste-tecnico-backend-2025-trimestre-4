@@ -17,4 +17,20 @@ export const HttpResponseMessages = {
       isError: false,
     },
   },
+  [HttpStatus.ACCEPTED]: {
+    accepted: {
+      statusCode: HttpStatus.ACCEPTED,
+      statusEnum: 'ACCEPTED',
+      message: 'Aceito',
+      isError: false,
+    },
+  },
+  [HttpStatus.NOT_FOUND]: {
+    not_found: {
+      statusCode: HttpStatus.NOT_FOUND,
+      statusEnum: 'NOT_FOUND',
+      message: 'Não encontrado',
+      isError: true,
+    },
+  },
 };

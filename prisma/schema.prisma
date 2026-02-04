@@ -16,12 +16,12 @@ enum CrawlStatusEnum {
 }
 
 enum CrawResultStatusEnum {
-  SUCESS
+  SUCCESS
   ERROR
 }
 
 model crawl {
-  id             String          @id @default(uuid(7)) @map("_id") @db.ObjectId
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
   cep_start      String
   cep_end        String
   status         CrawlStatusEnum
@@ -38,7 +38,7 @@ model crawl {
 }
 
 model crawl_result {
-  id            String               @id @default(uuid(7)) @map("_id") @db.ObjectId
+  id            String               @id @default(auto()) @map("_id") @db.ObjectId
   crawl_id      String               @db.ObjectId
   cep           String
   data          Json?
@@ -49,4 +49,22 @@ model crawl_result {
   crawl crawl @relation(fields: [crawl_id], references: [id])
 
   @@map("crawl_results")
+}
+
+model cep {
+  cep        String   @id @map("_id") // The 8-digit string
+  found      Boolean  @default(true)
+  logradouro String?
+  compl      String? // complemento
+  bairro     String?
+  localidade String?
+  uf         String?
+  ibge       String?
+  gia        String?
+  ddd        String?
+  siafi      String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("ceps")
 }

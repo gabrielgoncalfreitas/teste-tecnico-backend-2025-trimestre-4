@@ -1,29 +1,67 @@
 services:
-  mongo:
-    image: mongo
-    restart: always
-    env_file:
-      - .env
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+  api:
+    build: .
     ports:
-      - '27017:27017' # MongoDB
+      - '${API_PORT}:${API_PORT}'
+    env_file: .env
+    command: ['node', 'dist/main', '--role=api']
+    depends_on:
+      mongo:
+        condition: service_healthy
+      elasticmq:
+        condition: service_started
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:${API_PORT}/health']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  worker:
+    build: .
+    env_file: .env
+    command: ['node', 'dist/main', '--role=worker']
+    depends_on:
+      mongo:
+        condition: service_healthy
+      elasticmq:
+        condition: service_started
+    healthcheck:
+      test: ['CMD-SHELL', "ps aux | grep 'node dist/main' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  mongo:
+    image: mongo:6.0
+    ports:
+      - '${MONGO_PORT}:${MONGO_PORT}'
+    command: ['--replSet', 'rs0', '--bind_ip_all']
+    healthcheck:
+      test: test $$(mongosh --quiet --eval "try { rs.initiate() } catch(e) { rs.status().ok }") -eq 1
+      interval: 10s
+      start_period: 5s
 
   mongo-express:
     image: mongo-express
     restart: always
     ports:
-      - '8081:8081'
-    environment:
-      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017
-      ME_CONFIG_BASICAUTH_ENABLED: true
-      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      - '${MONGO_EXPRESS_PORT}:8081'
+    env_file: .env
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:8081']
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   elasticmq:
     image: softwaremill/elasticmq-native
     restart: always
     ports:
-      - '9324:9324' # REST-SQS API
-      - '9325:9325' # UI Dashboard (optional)
+      - '${ELASTICMQ_PORT}:9324' # REST-SQS API
+      - '${ELASTICMQ_UI_PORT}:9325' # UI Dashboard (optional)
