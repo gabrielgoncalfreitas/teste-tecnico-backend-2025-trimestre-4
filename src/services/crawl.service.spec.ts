@@ -65,6 +65,18 @@ describe('CrawlService', () => {
         }),
       );
     });
+    it('should handle not found ceps in bulk process', async () => {
+      const cached = [{ cep: '99999999', found: false }];
+      await service.processBulkCachedResults('c1', cached, true);
+      expect(repository.createResults).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            status: CrawResultStatusEnum.ERROR,
+            error_message: 'CEP not found (cached)',
+          }),
+        ]),
+      );
+    });
   });
   describe('saveSingleResult', () => {
     it('should update status to FINISHED when all ceps are processed', async () => {

@@ -57,6 +57,11 @@ describe('CrawlWorker', () => {
     addressService = module.get(AddressService);
     crawlService = module.get(CrawlService);
     cepCacheService = module.get(CepCacheService);
+
+    // Silence logger
+    jest.spyOn(worker['logger'], 'error').mockImplementation(() => undefined);
+    jest.spyOn(worker['logger'], 'warn').mockImplementation(() => undefined);
+    jest.spyOn(worker['logger'], 'log').mockImplementation(() => undefined);
   });
   afterEach(() => {
     jest.useRealTimers();

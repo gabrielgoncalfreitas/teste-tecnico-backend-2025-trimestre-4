@@ -14,6 +14,10 @@ describe('ViaCepProvider', () => {
       }),
     } as any;
     provider = new ViaCepProvider(configService);
+
+    // Silence logger
+    jest.spyOn(provider['logger'], 'error').mockImplementation(() => undefined);
+    jest.spyOn(provider['logger'], 'warn').mockImplementation(() => undefined);
     jest.clearAllMocks();
   });
   it('should return address data when request is successful', async () => {

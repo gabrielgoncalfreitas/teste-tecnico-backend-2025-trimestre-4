@@ -26,7 +26,11 @@ describe('AddressService', () => {
         },
       ],
     }).compile();
-    service = module.get(AddressService);
+    service = module.get<AddressService>(AddressService);
+
+    // Silence logger
+    jest.spyOn(service['logger'], 'error').mockImplementation(() => undefined);
+    jest.spyOn(service['logger'], 'warn').mockImplementation(() => undefined);
     viaCep = module.get(ViaCepProvider);
     openCep = module.get(OpenCepProvider);
   });

@@ -1,0 +1,93 @@
+
+> teste-tecnico-backend-2025-trimestre-4@0.0.1 test:cov /Users/gabriel/www/private/teste-tecnico-backend-2025-trimestre-4
+> jest --coverage
+
+PASS src/decorators/response/api.not-found.response.decorator.spec.ts
+PASS src/decorators/response/api.get.response.decorator.spec.ts
+PASS src/services/address.service.spec.ts
+PASS src/handlers/cep.crawl.results.handler.spec.ts
+PASS src/controllers/cep.crawl.results.controller.spec.ts
+PASS src/handlers/cep.crawl.create.handler.spec.ts
+PASS src/dtos/cep.crawl.create.dto.spec.ts
+PASS src/responses/health.response.spec.ts
+PASS src/services/sqs.service.spec.ts
+PASS src/validators/cep-range.validator.spec.ts
+PASS src/services/prisma.service.spec.ts
+PASS src/workers/crawl.worker.spec.ts
+PASS src/handlers/cep.crawl.get.handler.spec.ts
+PASS src/responses/cep.crawl.create.response.spec.ts
+PASS src/decorators/response/api.results.response.decorator.spec.ts
+PASS src/controllers/cep.crawl.create.controller.spec.ts
+PASS src/services/crawl.service.spec.ts
+PASS src/services/cep-cache.service.spec.ts
+PASS src/repositories/crawl.repository.spec.ts
+PASS src/responses/bad-request.response.spec.ts
+PASS src/providers/viacep.provider.spec.ts
+PASS src/controllers/cep.crawl.get.controller.spec.ts
+PASS src/responses/cep.crawl.results.response.spec.ts
+PASS src/decorators/response/api.create.response.decorator.spec.ts
+PASS src/responses/cep.crawl.get.response.spec.ts
+PASS src/repositories/cep.repository.spec.ts
+PASS src/responses/cep.crawl.not-found.response.spec.ts
+PASS src/dtos/cep.crawl.results.get.dto.spec.ts
+PASS src/constants/http-response-messages.constant.spec.ts
+PASS src/dtos/cep.crawl.get.dto.spec.ts
+PASS src/controllers/health.controller.spec.ts
+PASS src/providers/opencep.provider.spec.ts
+--------------------------------------|---------|----------|---------|---------|-------------------
+File                                  | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+--------------------------------------|---------|----------|---------|---------|-------------------
+All files                             |   91.01 |    76.85 |   93.33 |   90.98 |                   
+ src                                  |       0 |        0 |       0 |       0 |                   
+  app.module.ts                       |       0 |      100 |     100 |       0 | 1-51              
+  main.ts                             |       0 |        0 |       0 |       0 | 1-41              
+ src/constants                        |     100 |      100 |     100 |     100 |                   
+  http-response-messages.constant.ts  |     100 |      100 |     100 |     100 |                   
+ src/controllers                      |     100 |    68.18 |     100 |     100 |                   
+  cep.crawl.create.controller.ts      |     100 |       75 |     100 |     100 | 13-17             
+  cep.crawl.get.controller.ts         |     100 |       75 |     100 |     100 | 14                
+  cep.crawl.results.controller.ts     |     100 |       50 |     100 |     100 | 14-25             
+  health.controller.ts                |     100 |       75 |     100 |     100 | 12                
+ src/decorators/response              |     100 |      100 |     100 |     100 |                   
+  api.create.response.decorator.ts    |     100 |      100 |     100 |     100 |                   
+  api.get.response.decorator.ts       |     100 |      100 |     100 |     100 |                   
+  api.not-found.response.decorator.ts |     100 |      100 |     100 |     100 |                   
+  api.results.response.decorator.ts   |     100 |      100 |     100 |     100 |                   
+ src/dtos                             |     100 |      100 |     100 |     100 |                   
+  cep.crawl.create.dto.ts             |     100 |      100 |     100 |     100 |                   
+  cep.crawl.get.dto.ts                |     100 |      100 |     100 |     100 |                   
+  cep.crawl.results.get.dto.ts        |     100 |      100 |     100 |     100 |                   
+ src/handlers                         |     100 |    85.29 |     100 |     100 |                   
+  cep.crawl.create.handler.ts         |     100 |    83.33 |     100 |     100 | 14-15             
+  cep.crawl.get.handler.ts            |     100 |    83.33 |     100 |     100 | 8                 
+  cep.crawl.results.handler.ts        |     100 |       90 |     100 |     100 | 10                
+ src/providers                        |    92.5 |    77.27 |   66.66 |   91.66 |                   
+  opencep.provider.ts                 |   90.47 |       75 |   66.66 |   89.47 | 17,38             
+  viacep.provider.ts                  |   94.73 |       80 |   66.66 |   94.11 | 17                
+ src/repositories                     |     100 |       75 |     100 |     100 |                   
+  cep.repository.ts                   |     100 |       75 |     100 |     100 | 6                 
+  crawl.repository.ts                 |     100 |       75 |     100 |     100 | 11                
+ src/responses                        |     100 |       80 |     100 |     100 |                   
+  bad-request.response.ts             |     100 |      100 |     100 |     100 |                   
+  cep.crawl.create.response.ts        |     100 |       75 |     100 |     100 | 23                
+  cep.crawl.get.response.ts           |     100 |       75 |     100 |     100 | 23                
+  cep.crawl.not-found.response.ts     |     100 |      100 |     100 |     100 |                   
+  cep.crawl.results.response.ts       |     100 |      100 |     100 |     100 |                   
+  health.response.ts                  |     100 |      100 |     100 |     100 |                   
+ src/services                         |     100 |    79.41 |     100 |     100 |                   
+  address.service.ts                  |     100 |       75 |     100 |     100 | 13,31             
+  cep-cache.service.ts                |     100 |     87.5 |     100 |     100 | 7                 
+  crawl.service.ts                    |     100 |    94.44 |     100 |     100 | 11                
+  prisma.service.ts                   |     100 |    66.66 |     100 |     100 | 11-13             
+  sqs.service.ts                      |     100 |    70.83 |     100 |     100 | 19,55-107,124-139 
+ src/validators                       |   92.85 |     87.5 |     100 |      95 |                   
+  cep-range.validator.ts              |   92.85 |     87.5 |     100 |      95 | 34                
+ src/workers                          |   97.22 |    79.62 |     100 |     100 |                   
+  crawl.worker.ts                     |   97.22 |    79.62 |     100 |     100 | 22-38,45,59-74,95 
+--------------------------------------|---------|----------|---------|---------|-------------------
+
+Test Suites: 32 passed, 32 total
+Tests:       92 passed, 92 total
+Snapshots:   0 total
+Time:        2.457 s
+Ran all test suites.

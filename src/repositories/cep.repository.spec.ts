@@ -36,4 +36,19 @@ describe('CepRepository', () => {
       where: { cep: '01001000' },
     });
   });
+  it('should create a cep', async () => {
+    const data = { cep: '01001000', found: true };
+    const mockPromise = Promise.resolve(data);
+    (prisma.cep.create as jest.Mock).mockReturnValue(mockPromise);
+    const result = await repository.create(data);
+    expect(result).toEqual(data);
+    expect(prisma.cep.create).toHaveBeenCalledWith({ data });
+  });
+  it('should handle error in create and return undefined', async () => {
+    const data = { cep: '01001000', found: true };
+    const mockPromise = Promise.reject(new Error('Duplicate'));
+    (prisma.cep.create as jest.Mock).mockReturnValue(mockPromise);
+    const result = await repository.create(data);
+    expect(result).toBeUndefined();
+  });
 });

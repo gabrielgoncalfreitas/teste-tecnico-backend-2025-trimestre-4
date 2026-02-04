@@ -39,11 +39,16 @@ describe('SqsService', () => {
     service['queueUrl'] = 'http://queue-url';
     mockSqsClient = service['sqsClient'] as any;
     (mockSqsClient.send as jest.Mock).mockResolvedValue({} as any); // Default success
+
+    // Silence logger
+    jest.spyOn(service['logger'], 'error').mockImplementation(() => undefined);
+    jest.spyOn(service['logger'], 'log').mockImplementation(() => undefined);
+
     jest.clearAllMocks();
   });
   it('should initialize on module init (mocking existsSync)', async () => {
     (fs.existsSync as jest.Mock).mockReturnValue(false);
-    mockSqsClient.send.mockResolvedValue({} as any);
+    (mockSqsClient.send as jest.Mock).mockResolvedValue({} as any);
     await service.onModuleInit();
     expect(mockSqsClient.send).toHaveBeenCalledWith(
       expect.any(CreateQueueCommand),
@@ -78,7 +83,9 @@ describe('SqsService', () => {
   });
   it('should receive messages', async () => {
     const mockMessages = [{ Body: 'test' }];
-    mockSqsClient.send.mockResolvedValue({ Messages: mockMessages } as any);
+    (mockSqsClient.send as jest.Mock).mockResolvedValue({
+      Messages: mockMessages,
+    } as any);
     const result = await service.receiveMessages();
     expect(result).toEqual(mockMessages);
     expect(mockSqsClient.send).toHaveBeenCalledWith(
@@ -91,7 +98,9 @@ describe('SqsService', () => {
     expect(result).toEqual([]);
   });
   it('should return empty array when receive fails', async () => {
-    mockSqsClient.send.mockRejectedValue(new Error('Recv Error'));
+    (mockSqsClient.send as jest.Mock).mockRejectedValue(
+      new Error('Recv Error'),
+    );
     const result = await service.receiveMessages();
     expect(result).toEqual([]);
   });

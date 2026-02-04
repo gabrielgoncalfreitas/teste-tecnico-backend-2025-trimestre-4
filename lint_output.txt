@@ -1,0 +1,4 @@
+
+> teste-tecnico-backend-2025-trimestre-4@0.0.1 lint /Users/gabriel/www/private/teste-tecnico-backend-2025-trimestre-4
+> eslint "{src,apps,libs,test}/**/*.ts" --fix
+
