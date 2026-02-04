@@ -21,9 +21,6 @@ export class CepCrawlCreateHandler {
     const start = parseInt(body.cep_start);
     const end = parseInt(body.cep_end);
 
-    const validationError = this.validateRange(start, end);
-    if (validationError) return validationError;
-
     const totalCeps = end - start + 1;
     const crawl = await this.crawlService.createCrawl({
       cep_start: body.cep_start,
@@ -65,16 +62,6 @@ export class CepCrawlCreateHandler {
       success: finalCrawl.success_ceps,
       errors: finalCrawl.failed_ceps,
     });
-  }
-
-  private validateRange(start: number, end: number): BadRequestResponse | null {
-    if (isNaN(start) || isNaN(end))
-      return new BadRequestResponse('Invalid CEP format');
-    if (start > end)
-      return new BadRequestResponse('cep_start must be <= cep_end');
-    if (end - start > 10000)
-      return new BadRequestResponse('Range too large (max 10000)');
-    return null;
   }
 
   private generateCepRange(start: number, end: number): string[] {

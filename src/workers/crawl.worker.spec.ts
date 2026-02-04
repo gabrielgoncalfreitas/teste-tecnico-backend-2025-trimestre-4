@@ -4,6 +4,7 @@ import { SqsService } from '../services/sqs.service';
 import { AddressService } from '../services/address.service';
 import { CrawlService } from '../services/crawl.service';
 import { CepCacheService } from '../services/cep-cache.service';
+import { ConfigService } from '@nestjs/config';
 import { CrawResultStatusEnum } from 'generated/prisma';
 describe('CrawlWorker', () => {
   let worker: CrawlWorker;
@@ -11,6 +12,7 @@ describe('CrawlWorker', () => {
   let addressService: jest.Mocked<AddressService>;
   let crawlService: jest.Mocked<CrawlService>;
   let cepCacheService: jest.Mocked<CepCacheService>;
+  let configService: jest.Mocked<ConfigService>;
   beforeEach(async () => {
     jest.useFakeTimers();
     const module: TestingModule = await Test.createTestingModule({
@@ -41,6 +43,12 @@ describe('CrawlWorker', () => {
             save: jest.fn(),
           },
         },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('400'),
+          },
+        },
       ],
     }).compile();
     worker = module.get<CrawlWorker>(CrawlWorker);
@@ -48,6 +56,7 @@ describe('CrawlWorker', () => {
     addressService = module.get(AddressService);
     crawlService = module.get(CrawlService);
     cepCacheService = module.get(CepCacheService);
+    configService = module.get(ConfigService);
   });
   afterEach(() => {
     jest.useRealTimers();

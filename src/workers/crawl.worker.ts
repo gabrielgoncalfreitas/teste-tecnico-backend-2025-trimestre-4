@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { SqsService } from '../services/sqs.service';
 import { AddressService } from '../services/address.service';
 import { CrawlService } from '../services/crawl.service';
@@ -21,6 +22,7 @@ export class CrawlWorker implements OnModuleInit {
     private readonly addressService: AddressService,
     private readonly crawlService: CrawlService,
     private readonly cepCacheService: CepCacheService,
+    private readonly configService: ConfigService,
   ) {}
 
   onModuleInit() {
@@ -60,7 +62,9 @@ export class CrawlWorker implements OnModuleInit {
 
   async processMessage(message: any) {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      const rateLimit =
+        this.configService.get<string>('WORKER_RATE_LIMIT_MS') || '400';
+      await new Promise((resolve) => setTimeout(resolve, parseInt(rateLimit)));
 
       const body = JSON.parse(message.Body) as CrawlPayload;
       const { crawl_id, cep } = body;
