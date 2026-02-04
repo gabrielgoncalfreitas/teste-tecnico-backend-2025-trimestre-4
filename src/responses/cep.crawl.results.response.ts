@@ -34,14 +34,14 @@ export class CepCrawlResultsResponse implements Response<
   total: number;
 
   constructor(
-    data: CepCrawlResultsGetDTO[],
     page: number,
     take: number,
     total: number,
+    data: CepCrawlResultsGetDTO[],
   ) {
-    this.data = data;
     this.page = page;
     this.take = take;
     this.total = total;
+    this.data = data;
   }
 }
