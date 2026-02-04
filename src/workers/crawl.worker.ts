@@ -86,7 +86,7 @@ export class CrawlWorker implements OnModuleInit {
       let shouldRetry = false;
 
       try {
-        data = await this.addressService.getAddress(cep);
+        data = await this.addressService.getAddress(cep, crawl_id);
         if (!data || data.erro) {
           status = CrawResultStatusEnum.ERROR;
           errorMessage = 'CEP not found';

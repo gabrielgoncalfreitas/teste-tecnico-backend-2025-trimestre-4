@@ -80,7 +80,7 @@ describe('CrawlWorker', () => {
       const promise = (worker as any).processMessage(mockMessage);
       jest.runAllTimers();
       await promise;
-      expect(addressService.getAddress).toHaveBeenCalledWith('01001000');
+      expect(addressService.getAddress).toHaveBeenCalledWith('01001000', 'c1');
       expect(cepCacheService.save).toHaveBeenCalledWith(
         '01001000',
         true,
