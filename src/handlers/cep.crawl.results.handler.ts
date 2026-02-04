@@ -43,6 +43,6 @@ export class CepCrawlResultsHandler {
       };
     });
 
-    return new CepCrawlResultsResponse(dtos, page, take, total);
+    return new CepCrawlResultsResponse(page, take, total, dtos);
   }
 }
