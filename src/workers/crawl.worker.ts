@@ -50,9 +50,20 @@ export class CrawlWorker implements OnModuleInit {
       try {
         const messages = await this.sqsService.receiveMessages(10, 20);
         if (messages && messages.length > 0) {
-          for (const msg of messages) {
-            await this.processMessage(msg);
-          }
+          const rateLimit = parseInt(
+            this.configService.get<string>('WORKER_RATE_LIMIT_MS') || '100', // Reduced default for concurrency
+            10,
+          );
+
+          const promises = messages.map((msg, index) => {
+            // Stagger requests to avoid instant burst, but allow overlap
+            const delay = index * rateLimit;
+            return new Promise((resolve) => setTimeout(resolve, delay)).then(
+              () => this.processMessage(msg),
+            );
+          });
+
+          await Promise.all(promises);
         }
       } catch (error) {
         const message =
@@ -65,11 +76,7 @@ export class CrawlWorker implements OnModuleInit {
 
   async processMessage(message: Message) {
     try {
-      const rateLimit =
-        this.configService.get<string>('WORKER_RATE_LIMIT_MS') || '400';
-      await new Promise((resolve) =>
-        setTimeout(resolve, parseInt(rateLimit, 10)),
-      );
+      // Internal rate limit removed in favor of batch staggering
 
       if (!message.Body) return;
       const body = JSON.parse(message.Body) as CrawlPayload;
