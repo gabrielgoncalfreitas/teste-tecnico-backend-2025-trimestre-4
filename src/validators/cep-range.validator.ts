@@ -12,12 +12,12 @@ export class IsCepRangeConstraint implements ValidatorConstraintInterface {
     const object = args.object as { cep_end: string };
     const cepEnd = object.cep_end;
 
-    if (!cepStart || !cepEnd) return false; // Basic decorators handle existence
+    if (!cepStart || !cepEnd) return false; 
 
     const start = parseInt(cepStart as string, 10);
     const end = parseInt(cepEnd, 10);
 
-    if (isNaN(start) || isNaN(end)) return false; // Should be handled by @IsNumberString
+    if (isNaN(start) || isNaN(end)) return false; 
     if (start > end) return false;
     if (end - start > 10000) return false;
 
