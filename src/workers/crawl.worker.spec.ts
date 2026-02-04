@@ -47,7 +47,7 @@ describe('CrawlWorker', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue('400'),
+            get: jest.fn().mockReturnValue('0'), // Set to 0 to speed up tests
           },
         },
       ],
@@ -137,6 +137,7 @@ describe('CrawlWorker', () => {
     });
 
     it('should start polling and process messages if role is worker', async () => {
+      jest.useRealTimers(); // Use real timers since we mock rate limit to 0
       process.argv = ['node', 'app', '--role=worker'];
       const mockMessage: Message = {
         Body: JSON.stringify({ crawl_id: 'c1', cep: '01001000' }),
@@ -151,13 +152,7 @@ describe('CrawlWorker', () => {
         .spyOn(worker as any, 'processMessage')
         .mockResolvedValue(undefined);
       const pollPromise = worker.startPolling();
-      await Promise.resolve();
-      await Promise.resolve();
-      // Flush staggered timeouts inside Promise.all
-      jest.runAllTimers();
-      await Promise.resolve();
 
-      worker['isPolling'] = false;
       await pollPromise;
       expect(sqsService.receiveMessages).toHaveBeenCalled();
       expect(processSpy).toHaveBeenCalledWith(mockMessage);

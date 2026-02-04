@@ -51,19 +51,17 @@ export class CrawlWorker implements OnModuleInit {
         const messages = await this.sqsService.receiveMessages(10, 20);
         if (messages && messages.length > 0) {
           const rateLimit = parseInt(
-            this.configService.get<string>('WORKER_RATE_LIMIT_MS') || '100', // Reduced default for concurrency
+            this.configService.get<string>('WORKER_RATE_LIMIT_MS') || '1000', // Default 1s for safety
             10,
           );
 
-          const promises = messages.map((msg, index) => {
-            // Stagger requests to avoid instant burst, but allow overlap
-            const delay = index * rateLimit;
-            return new Promise((resolve) => setTimeout(resolve, delay)).then(
-              () => this.processMessage(msg),
-            );
-          });
-
-          await Promise.all(promises);
+          // STRICT SEQUENTIAL PROCESSING
+          // ViaCEP is blocking parallel requests. We must process one by one.
+          for (const msg of messages) {
+            await this.processMessage(msg);
+            // Wait specific delay between requests to respect API limits
+            await new Promise((resolve) => setTimeout(resolve, rateLimit));
+          }
         }
       } catch (error) {
         const message =
