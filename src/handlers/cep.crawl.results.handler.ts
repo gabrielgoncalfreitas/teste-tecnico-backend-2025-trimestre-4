@@ -13,10 +13,18 @@ export class CepCrawlResultsHandler {
     crawl_id,
     page = 1,
     take = 10,
+    cep_start,
+    cep_end,
+    status,
+    q,
   }: {
     crawl_id: string;
     page?: number;
     take?: number;
+    cep_start?: string;
+    cep_end?: string;
+    status?: string;
+    q?: string;
   }) {
     const skip = (page - 1) * take;
 
@@ -26,9 +34,16 @@ export class CepCrawlResultsHandler {
       return new CepCrawlNotFoundResponse();
     }
 
+    const filters = {
+      cep_start,
+      cep_end,
+      status: status ? (status as any) : undefined,
+      q,
+    };
+
     const [results, total] = await Promise.all([
-      this.crawlService.findResults(crawl_id, skip, take),
-      this.crawlService.countResults(crawl_id),
+      this.crawlService.findResults(crawl_id, skip, take, filters),
+      this.crawlService.countResults(crawl_id, filters),
     ]);
 
     const dtos: CepCrawlResultsGetDTO[] = results.map((r) => {

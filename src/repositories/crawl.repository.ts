@@ -60,18 +60,84 @@ export class CrawlRepository {
     return this.prisma.crawl_result.create({ data });
   }
 
-  async findResults(crawlId: string, skip: number, take: number) {
+  async findResults(
+    crawlId: string,
+    skip: number,
+    take: number,
+    filters?: {
+      cep_start?: string;
+      cep_end?: string;
+      status?: CrawResultStatusEnum;
+      q?: string;
+      matching_ceps?: string[];
+    },
+  ) {
+    const where: Prisma.crawl_resultWhereInput = { crawl_id: crawlId };
+
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    if (filters?.cep_start || filters?.cep_end) {
+      where.cep = {};
+      if (filters.cep_start) where.cep.gte = filters.cep_start;
+      if (filters.cep_end) where.cep.lte = filters.cep_end;
+    }
+
+    if (filters?.q || filters?.matching_ceps) {
+      const q = filters.q;
+      where.OR = [];
+      if (q) {
+        where.OR.push({ cep: { contains: q, mode: 'insensitive' } });
+      }
+      if (filters.matching_ceps?.length) {
+        where.OR.push({ cep: { in: filters.matching_ceps } });
+      }
+    }
+
     return this.prisma.crawl_result.findMany({
-      where: { crawl_id: crawlId },
+      where,
       skip,
       take,
       orderBy: { created_at: 'asc' },
     });
   }
 
-  async countResults(crawlId: string) {
+  async countResults(
+    crawlId: string,
+    filters?: {
+      cep_start?: string;
+      cep_end?: string;
+      status?: CrawResultStatusEnum;
+      q?: string;
+      matching_ceps?: string[];
+    },
+  ) {
+    const where: Prisma.crawl_resultWhereInput = { crawl_id: crawlId };
+
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    if (filters?.cep_start || filters?.cep_end) {
+      where.cep = {};
+      if (filters.cep_start) where.cep.gte = filters.cep_start;
+      if (filters.cep_end) where.cep.lte = filters.cep_end;
+    }
+
+    if (filters?.q || filters?.matching_ceps) {
+      const q = filters.q;
+      where.OR = [];
+      if (q) {
+        where.OR.push({ cep: { contains: q, mode: 'insensitive' } });
+      }
+      if (filters.matching_ceps?.length) {
+        where.OR.push({ cep: { in: filters.matching_ceps } });
+      }
+    }
+
     return this.prisma.crawl_result.count({
-      where: { crawl_id: crawlId },
+      where,
     });
   }
 }

@@ -1,10 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CrawlService } from './crawl.service';
 import { CrawlRepository } from '../repositories/crawl.repository';
+import { CepRepository } from '../repositories/cep.repository';
 import { CrawlStatusEnum, CrawResultStatusEnum } from 'generated/prisma';
+
 describe('CrawlService', () => {
   let service: CrawlService;
   let repository: jest.Mocked<CrawlRepository>;
+  let cepRepository: jest.Mocked<CepRepository>;
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -22,11 +26,20 @@ describe('CrawlService', () => {
             countResults: jest.fn(),
           },
         },
+        {
+          provide: CepRepository,
+          useValue: {
+            searchCeps: jest.fn().mockResolvedValue([]),
+          },
+        },
       ],
     }).compile();
+
     service = module.get(CrawlService);
     repository = module.get(CrawlRepository);
+    cepRepository = module.get(CepRepository);
   });
+
   describe('createCrawl', () => {
     it('should create a crawl with PENDING status', async () => {
       const data = {
@@ -41,6 +54,7 @@ describe('CrawlService', () => {
       });
     });
   });
+
   describe('processBulkCachedResults', () => {
     it('should set status to FINISHED if range is complete', async () => {
       const crawlId = 'c1';
@@ -54,6 +68,7 @@ describe('CrawlService', () => {
         }),
       );
     });
+
     it('should set status to RUNNING if range is NOT complete', async () => {
       const crawlId = 'c1';
       const cached = [{ cep: '01000000', found: true }];
@@ -65,6 +80,7 @@ describe('CrawlService', () => {
         }),
       );
     });
+
     it('should handle not found ceps in bulk process', async () => {
       const cached = [{ cep: '99999999', found: false }];
       await service.processBulkCachedResults('c1', cached, true);
@@ -78,6 +94,7 @@ describe('CrawlService', () => {
       );
     });
   });
+
   describe('saveSingleResult', () => {
     it('should update status to FINISHED when all ceps are processed', async () => {
       const crawlId = 'c1';
@@ -94,6 +111,7 @@ describe('CrawlService', () => {
         status: CrawlStatusEnum.FINISHED,
       });
     });
+
     it('should update status to RUNNING when NOT all ceps are processed', async () => {
       const crawlId = 'c1';
       repository.updateWithSelect.mockResolvedValue({
@@ -110,29 +128,85 @@ describe('CrawlService', () => {
       });
     });
   });
-  it('should find results', async () => {
-    repository.findResults.mockResolvedValue([{ id: 'r1' }] as any);
-    const results = await service.findResults('c1', 10, 20);
-    expect(results).toHaveLength(1);
-    expect(repository.findResults).toHaveBeenCalledWith('c1', 10, 20);
+
+  describe('findResults', () => {
+    it('should find results without filters', async () => {
+      repository.findResults.mockResolvedValue([{ id: 'r1' }] as any);
+      const results = await service.findResults('c1', 10, 20);
+      expect(results).toHaveLength(1);
+      expect(repository.findResults).toHaveBeenCalledWith(
+        'c1',
+        10,
+        20,
+        expect.objectContaining({ matching_ceps: undefined }),
+      );
+    });
+
+    it('should find results with search query q', async () => {
+      cepRepository.searchCeps.mockResolvedValue([{ cep: '01001000' }] as any);
+      repository.findResults.mockResolvedValue([{ id: 'r1' }] as any);
+
+      const results = await service.findResults('c1', 0, 10, { q: 'Sé' });
+
+      expect(cepRepository.searchCeps).toHaveBeenCalledWith('Sé');
+      expect(repository.findResults).toHaveBeenCalledWith(
+        'c1',
+        0,
+        10,
+        expect.objectContaining({
+          q: 'Sé',
+          matching_ceps: ['01001000'],
+        }),
+      );
+      expect(results).toHaveLength(1);
+    });
   });
-  it('should count results using countResults', async () => {
-    repository.countResults.mockResolvedValue(42);
-    const count = await service.countResults('c1');
-    expect(count).toBe(42);
-    expect(repository.countResults).toHaveBeenCalledWith('c1');
+
+  describe('countResults', () => {
+    it('should count results using countResults', async () => {
+      repository.countResults.mockResolvedValue(42);
+      const count = await service.countResults('c1');
+      expect(count).toBe(42);
+      expect(repository.countResults).toHaveBeenCalledWith(
+        'c1',
+        expect.objectContaining({ matching_ceps: undefined }),
+      );
+    });
+
+    it('should count results with search query q', async () => {
+      cepRepository.searchCeps.mockResolvedValue([{ cep: '01001000' }] as any);
+      repository.countResults.mockResolvedValue(5);
+
+      const count = await service.countResults('c1', { q: 'Sé' });
+
+      expect(cepRepository.searchCeps).toHaveBeenCalledWith('Sé');
+      expect(repository.countResults).toHaveBeenCalledWith(
+        'c1',
+        expect.objectContaining({
+          q: 'Sé',
+          matching_ceps: ['01001000'],
+        }),
+      );
+      expect(count).toBe(5);
+    });
   });
+
   it('should count results using findResultsCount', async () => {
     repository.countResults.mockResolvedValue(42);
     const count = await service.findResultsCount('c1');
     expect(count).toBe(42);
-    expect(repository.countResults).toHaveBeenCalledWith('c1');
+    expect(repository.countResults).toHaveBeenCalledWith(
+      'c1',
+      expect.objectContaining({ matching_ceps: undefined }),
+    );
   });
+
   it('should create a crawl findById', async () => {
     repository.findById.mockResolvedValue({ id: 'c1' } as any);
     const crawl = await service.findById('c1');
     expect(crawl?.id).toBe('c1');
   });
+
   it('should increment failed_ceps when status is ERROR', async () => {
     const crawlId = 'c1';
     repository.updateWithSelect.mockResolvedValue({

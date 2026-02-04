@@ -5,10 +5,14 @@ import {
   Prisma,
 } from 'generated/prisma';
 import { CrawlRepository } from '../repositories/crawl.repository';
+import { CepRepository } from '../repositories/cep.repository';
 
 @Injectable()
 export class CrawlService {
-  constructor(private readonly repository: CrawlRepository) {}
+  constructor(
+    private readonly repository: CrawlRepository,
+    private readonly cepRepository: CepRepository,
+  ) {}
 
   async createCrawl(data: {
     cep_start: string;
@@ -98,15 +102,55 @@ export class CrawlService {
     return updatedCrawl;
   }
 
-  async findResults(crawlId: string, skip: number, take: number) {
-    return this.repository.findResults(crawlId, skip, take);
+  private async getMatchingCeps(q?: string): Promise<string[] | undefined> {
+    if (!q) return undefined;
+    const matching = await this.cepRepository.searchCeps(q);
+    return matching.map((m) => m.cep);
   }
 
-  async findResultsCount(crawlId: string) {
-    return this.repository.countResults(crawlId);
+  async findResults(
+    crawlId: string,
+    skip: number,
+    take: number,
+    filters?: {
+      cep_start?: string;
+      cep_end?: string;
+      status?: CrawResultStatusEnum;
+      q?: string;
+    },
+  ) {
+    const matching_ceps = await this.getMatchingCeps(filters?.q);
+    return this.repository.findResults(crawlId, skip, take, {
+      ...filters,
+      matching_ceps,
+    });
   }
 
-  async countResults(crawlId: string) {
-    return this.repository.countResults(crawlId);
+  async countResults(
+    crawlId: string,
+    filters?: {
+      cep_start?: string;
+      cep_end?: string;
+      status?: CrawResultStatusEnum;
+      q?: string;
+    },
+  ) {
+    const matching_ceps = await this.getMatchingCeps(filters?.q);
+    return this.repository.countResults(crawlId, {
+      ...filters,
+      matching_ceps,
+    });
+  }
+
+  async findResultsCount(
+    crawlId: string,
+    filters?: {
+      cep_start?: string;
+      cep_end?: string;
+      status?: CrawResultStatusEnum;
+      q?: string;
+    },
+  ) {
+    return this.countResults(crawlId, filters);
   }
 }

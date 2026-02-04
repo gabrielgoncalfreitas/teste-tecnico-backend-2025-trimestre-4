@@ -1,9 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CepRepository } from './cep.repository';
 import { PrismaService } from '../services/prisma.service';
+
 describe('CepRepository', () => {
   let repository: CepRepository;
   let prisma: jest.Mocked<PrismaService>;
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -20,6 +22,7 @@ describe('CepRepository', () => {
         },
       ],
     }).compile();
+
     repository = module.get(CepRepository);
     prisma = module.get(PrismaService);
   });
@@ -36,6 +39,21 @@ describe('CepRepository', () => {
     await repository.findUnique('01001000');
     expect(prisma.cep.findUnique).toHaveBeenCalledWith({
       where: { cep: '01001000' },
+    });
+  });
+
+  it('should search ceps by keyword', async () => {
+    const q = 'Sé';
+    await repository.searchCeps(q);
+    expect(prisma.cep.findMany).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { logradouro: { contains: q, mode: 'insensitive' } },
+          { localidade: { contains: q, mode: 'insensitive' } },
+          { uf: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      select: { cep: true },
     });
   });
 

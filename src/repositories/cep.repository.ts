@@ -19,6 +19,19 @@ export class CepRepository {
     });
   }
 
+  async searchCeps(q: string) {
+    return this.prisma.cep.findMany({
+      where: {
+        OR: [
+          { logradouro: { contains: q, mode: 'insensitive' } },
+          { localidade: { contains: q, mode: 'insensitive' } },
+          { uf: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      select: { cep: true },
+    });
+  }
+
   async create(data: {
     cep: string;
     found: boolean;
