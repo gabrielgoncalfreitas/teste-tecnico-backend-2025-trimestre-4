@@ -32,11 +32,12 @@ export class CepRepository {
     ddd?: string;
     siafi?: string;
   }) {
+    const { cep, ...rest } = data;
     return this.prisma.cep.upsert({
-      where: { cep: data.cep },
+      where: { cep },
       create: data,
       update: {
-        ...data,
+        ...rest,
         updated_at: new Date(),
       },
     });
