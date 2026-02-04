@@ -24,9 +24,10 @@ export class AddressService {
         return address;
       }
     } catch (error: unknown) {
-      this.logger.warn(
-        `${logPrefix}Provider ${this.viaCep.getName()} failed for ${cep}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      this.logger.error(
+        `${logPrefix}ViaCEP failed for ${cep}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
+      return null;
     }
 
     this.logger.error(`${logPrefix}Address provider failed for CEP ${cep}`);

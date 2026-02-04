@@ -39,9 +39,10 @@ describe('ViaCepProvider', () => {
     const result = await provider.getAddress('99999999');
     expect(result).toBeNull();
   });
-  it('should return null and log warning when request fails', async () => {
+  it('should throw error when request fails', async () => {
     mockedAxios.get.mockRejectedValue(new Error('Network Error'));
-    const result = await provider.getAddress('01001000');
-    expect(result).toBeNull();
+    await expect(provider.getAddress('01001000')).rejects.toThrow(
+      'Network Error',
+    );
   });
 });
