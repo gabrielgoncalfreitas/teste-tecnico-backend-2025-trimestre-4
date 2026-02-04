@@ -27,8 +27,10 @@ export class ViaCepProvider implements AddressProvider {
       if (response.data && !response.data.erro) {
         return response.data;
       }
-    } catch (error: any) {
-      this.logger.warn(`ViaCEP failed for ${cep}: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`ViaCEP failed for ${cep}: ${message}`);
+      return null;
     }
     return null;
   }

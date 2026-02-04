@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../services/prisma.service';
-import { CrawlStatusEnum, CrawResultStatusEnum } from 'generated/prisma';
+import {
+  CrawlStatusEnum,
+  CrawResultStatusEnum,
+  Prisma,
+} from 'generated/prisma';
 
 @Injectable()
 export class CrawlRepository {
@@ -21,14 +25,18 @@ export class CrawlRepository {
     });
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: Prisma.crawlUpdateInput) {
     return this.prisma.crawl.update({
       where: { id },
       data,
     });
   }
 
-  async updateWithSelect(id: string, data: any, select: any) {
+  async updateWithSelect(
+    id: string,
+    data: Prisma.crawlUpdateInput,
+    select: Prisma.crawlSelect,
+  ) {
     return this.prisma.crawl.update({
       where: { id },
       data,
@@ -36,7 +44,7 @@ export class CrawlRepository {
     });
   }
 
-  async createResults(data: any[]) {
+  async createResults(data: Prisma.crawl_resultCreateManyInput[]) {
     return this.prisma.crawl_result.createMany({
       data,
     });

@@ -3,6 +3,7 @@ import { CrawlService } from 'src/services/crawl.service';
 import { CepCrawlNotFoundResponse } from 'src/responses/cep.crawl.not-found.response';
 import { CepCrawlResultsResponse } from 'src/responses/cep.crawl.results.response';
 import { CepCrawlResultsGetDTO } from 'src/dtos/cep.crawl.results.get.dto';
+import { AddressData } from 'src/interfaces/address.interface';
 
 @Injectable()
 export class CepCrawlResultsHandler {
@@ -31,7 +32,7 @@ export class CepCrawlResultsHandler {
     ]);
 
     const dtos: CepCrawlResultsGetDTO[] = results.map((r) => {
-      const data = r.data as any;
+      const data = r.data as AddressData | null;
       return {
         cep: r.cep,
         status: r.status,

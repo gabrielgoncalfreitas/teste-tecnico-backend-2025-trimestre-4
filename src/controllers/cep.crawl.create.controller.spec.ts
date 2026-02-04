@@ -30,8 +30,11 @@ describe('CepCrawlCreateController', () => {
         json: jest.fn().mockReturnThis(),
       } as unknown as Response;
       await controller.main(res, body);
+
       expect(handler.main).toHaveBeenCalledWith({ body });
+
       expect(res.status).toHaveBeenCalledWith(201);
+
       expect(res.json).toHaveBeenCalledWith(mockResult);
     });
   });

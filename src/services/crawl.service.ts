@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { CrawlStatusEnum, CrawResultStatusEnum } from 'generated/prisma';
+import {
+  CrawlStatusEnum,
+  CrawResultStatusEnum,
+  Prisma,
+} from 'generated/prisma';
 import { CrawlRepository } from '../repositories/crawl.repository';
 
 @Injectable()
@@ -23,7 +27,7 @@ export class CrawlService {
 
   async processBulkCachedResults(
     crawlId: string,
-    cachedCeps: any[],
+    cachedCeps: { cep: string; found: boolean }[],
     isCompleteRange: boolean,
   ) {
     const resultsToCreate = cachedCeps.map((c) => ({
@@ -32,7 +36,7 @@ export class CrawlService {
       status: c.found
         ? CrawResultStatusEnum.SUCCESS
         : CrawResultStatusEnum.ERROR,
-      data: c.found ? (c as any) : undefined,
+      data: c.found ? c : undefined,
       error_message: c.found ? null : 'CEP not found (cached)',
     }));
 
@@ -55,7 +59,7 @@ export class CrawlService {
     crawlId: string;
     cep: string;
     status: CrawResultStatusEnum;
-    data?: any;
+    data?: Prisma.InputJsonValue;
     errorMessage?: string;
   }) {
     const { crawlId, cep, status, data, errorMessage } = params;
@@ -64,11 +68,11 @@ export class CrawlService {
       crawl_id: crawlId,
       cep,
       status,
-      data: (data as any) ?? undefined,
+      data: data ?? undefined,
       error_message: errorMessage,
     });
 
-    const updateData: any = {
+    const updateData: Prisma.crawlUpdateInput = {
       processed_ceps: { increment: 1 },
     };
 

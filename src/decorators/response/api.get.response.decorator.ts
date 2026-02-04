@@ -3,10 +3,10 @@ import {
   ApiExtraModels,
   ApiOkResponse as ApiOkResponseSwagger,
 } from '@nestjs/swagger';
-import { HttpStatus, applyDecorators } from '@nestjs/common';
+import { HttpStatus, applyDecorators, Type } from '@nestjs/common';
 import { HttpResponseMessages } from 'src/constants/http-response-messages.constant';
 
-export function ApiGetResponse(model: Function) {
+export function ApiGetResponse(model: Type<any>) {
   return applyDecorators(
     ApiExtraModels(model),
     ApiOkResponseSwagger({

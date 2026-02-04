@@ -9,13 +9,13 @@ import {
 @ValidatorConstraint({ async: false })
 export class IsCepRangeConstraint implements ValidatorConstraintInterface {
   validate(cepStart: any, args: ValidationArguments) {
-    const object = args.object as any;
+    const object = args.object as { cep_end: string };
     const cepEnd = object.cep_end;
 
     if (!cepStart || !cepEnd) return false; // Basic decorators handle existence
 
-    const start = parseInt(cepStart);
-    const end = parseInt(cepEnd);
+    const start = parseInt(cepStart as string, 10);
+    const end = parseInt(cepEnd, 10);
 
     if (isNaN(start) || isNaN(end)) return false; // Should be handled by @IsNumberString
     if (start > end) return false;
@@ -25,9 +25,9 @@ export class IsCepRangeConstraint implements ValidatorConstraintInterface {
   }
 
   defaultMessage(args: ValidationArguments) {
-    const object = args.object as any;
-    const start = parseInt(object.cep_start);
-    const end = parseInt(object.cep_end);
+    const object = args.object as { cep_start: string; cep_end: string };
+    const start = parseInt(object.cep_start, 10);
+    const end = parseInt(object.cep_end, 10);
 
     if (start > end) return 'cep_start must be less than or equal to cep_end';
     if (end - start > 10000) return 'Range too large (max 10000)';
@@ -36,7 +36,7 @@ export class IsCepRangeConstraint implements ValidatorConstraintInterface {
 }
 
 export function IsCepRange(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,

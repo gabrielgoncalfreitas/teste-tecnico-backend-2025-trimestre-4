@@ -3,10 +3,10 @@ import {
   ApiExtraModels,
   ApiNotFoundResponse as ApiNotFoundResponseSwagger,
 } from '@nestjs/swagger';
-import { HttpStatus, applyDecorators } from '@nestjs/common';
+import { HttpStatus, applyDecorators, Type } from '@nestjs/common';
 import { HttpResponseMessages } from 'src/constants/http-response-messages.constant';
 
-export function ApiNotFoundResponse(model: Function) {
+export function ApiNotFoundResponse(model: Type<any>) {
   return applyDecorators(
     ApiExtraModels(model),
     ApiNotFoundResponseSwagger({

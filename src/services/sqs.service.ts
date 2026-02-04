@@ -65,8 +65,10 @@ export class SqsService implements OnModuleInit {
       });
       await this.sqsClient.send(command);
       this.logger.log(`Queue ${queueName} ensured.`);
-    } catch (error: any) {
-      this.logger.error(`Error creating queue: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Error creating queue: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -77,8 +79,10 @@ export class SqsService implements OnModuleInit {
         MessageBody: JSON.stringify(body),
       });
       await this.sqsClient.send(command);
-    } catch (error: any) {
-      this.logger.error(`Error sending message to SQS: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Error sending message to SQS: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       throw error;
     }
   }
@@ -98,8 +102,10 @@ export class SqsService implements OnModuleInit {
             Entries: batch,
           }),
         );
-      } catch (error: any) {
-        this.logger.error(`Error sending batch to SQS: ${error.message}`);
+      } catch (error: unknown) {
+        this.logger.error(
+          `Error sending batch to SQS: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
       }
     }
   }
@@ -113,8 +119,10 @@ export class SqsService implements OnModuleInit {
       });
       const response = await this.sqsClient.send(command);
       return response.Messages || [];
-    } catch (error: any) {
-      this.logger.error(`Error receiving messages from SQS: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Error receiving messages from SQS: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return [];
     }
   }
@@ -126,8 +134,10 @@ export class SqsService implements OnModuleInit {
         ReceiptHandle: receiptHandle,
       });
       await this.sqsClient.send(command);
-    } catch (error: any) {
-      this.logger.error(`Error deleting message from SQS: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Error deleting message from SQS: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 }

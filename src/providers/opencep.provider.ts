@@ -27,11 +27,13 @@ export class OpenCepProvider implements AddressProvider {
       if (response.data) {
         return response.data;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
         return null;
       }
-      this.logger.warn(`OpenCEP failed for ${cep}: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`OpenCEP failed for ${cep}: ${message}`);
+      return null;
     }
     return null;
   }

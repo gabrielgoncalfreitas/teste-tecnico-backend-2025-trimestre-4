@@ -4,7 +4,6 @@ import { CepCrawlCreateResponse } from 'src/responses/cep.crawl.create.response'
 import { SqsService } from 'src/services/sqs.service';
 import { CrawlService } from 'src/services/crawl.service';
 import { CepCacheService } from 'src/services/cep-cache.service';
-import { BadRequestResponse } from 'src/responses/bad-request.response';
 import { CepCrawlNotFoundResponse } from 'src/responses/cep.crawl.not-found.response';
 
 @Injectable()

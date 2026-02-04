@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../services/prisma.service';
-import { AddressData } from '../interfaces/address.interface';
 
 @Injectable()
 export class CepRepository {

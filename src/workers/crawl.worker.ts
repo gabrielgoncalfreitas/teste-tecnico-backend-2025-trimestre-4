@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Message } from '@aws-sdk/client-sqs';
 import { SqsService } from '../services/sqs.service';
 import { AddressService } from '../services/address.service';
 import { CrawlService } from '../services/crawl.service';
@@ -26,8 +27,8 @@ export class CrawlWorker implements OnModuleInit {
   ) {}
 
   onModuleInit() {
-    this.startPolling().catch((err) =>
-      this.logger.error('Failed to start polling', err),
+    this.startPolling().catch((err: Error) =>
+      this.logger.error('Failed to start polling', err.message),
     );
   }
 
@@ -48,24 +49,29 @@ export class CrawlWorker implements OnModuleInit {
     while (this.isPolling) {
       try {
         const messages = await this.sqsService.receiveMessages(10, 20);
-        if (messages.length > 0) {
+        if (messages && messages.length > 0) {
           for (const msg of messages) {
             await this.processMessage(msg);
           }
         }
       } catch (error) {
-        this.logger.error('Polling error', error);
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error('Polling error', message);
         await new Promise((resolve) => setTimeout(resolve, 5000));
       }
     }
   }
 
-  async processMessage(message: any) {
+  async processMessage(message: Message) {
     try {
       const rateLimit =
         this.configService.get<string>('WORKER_RATE_LIMIT_MS') || '400';
-      await new Promise((resolve) => setTimeout(resolve, parseInt(rateLimit)));
+      await new Promise((resolve) =>
+        setTimeout(resolve, parseInt(rateLimit, 10)),
+      );
 
+      if (!message.Body) return;
       const body = JSON.parse(message.Body) as CrawlPayload;
       const { crawl_id, cep } = body;
 
@@ -84,12 +90,13 @@ export class CrawlWorker implements OnModuleInit {
         } else {
           await this.cepCacheService.save(cep, true, data);
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
         status = CrawResultStatusEnum.ERROR;
-        errorMessage = e.message || 'Unknown Error';
+        const messageText = e instanceof Error ? e.message : 'Unknown Error';
+        errorMessage = messageText;
         shouldRetry = true;
         this.logger.warn(
-          `Transient error fetching CEP ${cep}, triggering retry: ${e.message}`,
+          `Transient error fetching CEP ${cep}, triggering retry: ${messageText}`,
         );
       }
 
@@ -103,12 +110,15 @@ export class CrawlWorker implements OnModuleInit {
         errorMessage: errorMessage ?? undefined,
       });
 
-      await this.sqsService.deleteMessage(message.ReceiptHandle);
-    } catch (error: any) {
-      if (!error.message.startsWith('Retryable error')) {
+      await this.sqsService.deleteMessage(message.ReceiptHandle as string);
+    } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        !error.message.startsWith('Retryable error')
+      ) {
         this.logger.error(
-          `Failed to process message ${message.MessageId}`,
-          error,
+          `Failed to process message ${message.MessageId ?? 'unknown'}`,
+          error.message,
         );
       }
     }

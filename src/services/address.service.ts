@@ -26,9 +26,9 @@ export class AddressService {
           );
           return address;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.logger.warn(
-          `Provider ${provider.getName()} failed for ${cep}: ${error.message}`,
+          `Provider ${provider.getName()} failed for ${cep}: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
       }
     }
