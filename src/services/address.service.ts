@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AddressProvider } from './address/address-provider.interface';
-import { ViaCepProvider } from './address/viacep.provider';
-import { OpenCepProvider } from './address/opencep.provider';
-import { AddressData } from '../contracts/address.contract';
+import { AddressProvider } from '../interfaces/address-provider.interface';
+import { ViaCepProvider } from '../providers/viacep.provider';
+import { OpenCepProvider } from '../providers/opencep.provider';
+import { AddressData } from '../interfaces/address.interface';
 
 @Injectable()
 export class AddressService {

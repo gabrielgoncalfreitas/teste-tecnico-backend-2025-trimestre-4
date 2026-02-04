@@ -1,4 +1,4 @@
-import { AddressData } from '../../contracts/address.contract';
+import { AddressData } from './address.interface';
 
 export interface AddressProvider {
   getName(): string;

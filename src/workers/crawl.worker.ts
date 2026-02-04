@@ -3,7 +3,7 @@ import { SqsService } from '../services/sqs.service';
 import { AddressService } from '../services/address.service';
 import { CrawlService } from '../services/crawl.service';
 import { CepCacheService } from '../services/cep-cache.service';
-import { AddressData } from '../contracts/address.contract';
+import { AddressData } from '../interfaces/address.interface';
 import { CrawResultStatusEnum } from 'generated/prisma';
 
 interface CrawlPayload {

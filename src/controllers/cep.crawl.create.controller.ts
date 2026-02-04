@@ -15,6 +15,6 @@ export class CepCrawlCreateController {
   async main(@Res() res: Response, @Body() body: CepCrawlCreateDTO) {
     const result = await this.handler.main({ body });
 
-    return res.status(result.code).send(result);
+    return res.status(result.code).json(result);
   }
 }

@@ -1,6 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { Response } from 'src/contracts/response.contract';
+import { Response } from 'src/interfaces/response.interface';
 import { CepCrawlGetDTO } from 'src/dtos/cep.crawl.get.dto';
 import { HttpResponseMessages } from 'src/constants/http-response-messages.constant';
 

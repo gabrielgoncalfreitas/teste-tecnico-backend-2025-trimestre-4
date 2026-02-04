@@ -1,5 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
-import { Response } from 'src/contracts/response.contract';
+import { Response } from 'src/interfaces/response.interface';
 import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
 import { HttpResponseMessages } from 'src/constants/http-response-messages.constant';
 

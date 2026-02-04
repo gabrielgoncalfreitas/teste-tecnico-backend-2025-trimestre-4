@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
-import { AddressProvider } from './address-provider.interface';
-import { AddressData } from '../../contracts/address.contract';
+import { AddressProvider } from '../interfaces/address-provider.interface';
+import { AddressData } from '../interfaces/address.interface';
 
 @Injectable()
 export class OpenCepProvider implements AddressProvider {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { AddressData } from '../contracts/address.contract';
+import { AddressData } from '../interfaces/address.interface';
 
 @Injectable()
 export class CepCacheService {

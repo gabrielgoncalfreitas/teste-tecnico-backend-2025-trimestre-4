@@ -1,12 +1,6 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Query,
-  NotFoundException,
-} from '@nestjs/common';
+import type { Response } from 'express';
+import { Controller, Get, Param, Query, Res } from '@nestjs/common';
 import { CepCrawlResultsHandler } from 'src/handlers/cep.crawl.results.handler';
-import { CepCrawlNotFoundResponse } from 'src/responses/cep.crawl.not-found.response';
 import { ApiQuery, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('CEP Crawl')
@@ -15,9 +9,10 @@ export class CepCrawlResultsController {
   constructor(private readonly handler: CepCrawlResultsHandler) {}
 
   @Get(':crawl_id/results')
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'page', example: 1, required: false, type: Number })
+  @ApiQuery({ name: 'limit', example: 10, required: false, type: Number })
   async main(
+    @Res() res: Response,
     @Param('crawl_id') crawlId: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
@@ -28,10 +23,6 @@ export class CepCrawlResultsController {
       limit: Number(limit),
     });
 
-    if (result instanceof CepCrawlNotFoundResponse) {
-      throw new NotFoundException(result);
-    }
-
-    return result;
+    return res.status(result.code).json(result);
   }
 }
