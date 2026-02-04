@@ -28,7 +28,7 @@ export class CepCrawlResultsResponse implements Response<
   page: number;
 
   @ApiProperty({ example: 10 })
-  limit: number;
+  take: number;
 
   @ApiProperty({ example: 50 })
   total: number;
@@ -36,12 +36,12 @@ export class CepCrawlResultsResponse implements Response<
   constructor(
     data: CepCrawlResultsGetDTO[],
     page: number,
-    limit: number,
+    take: number,
     total: number,
   ) {
     this.data = data;
     this.page = page;
-    this.limit = limit;
+    this.take = take;
     this.total = total;
   }
 }

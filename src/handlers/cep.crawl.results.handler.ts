@@ -12,13 +12,13 @@ export class CepCrawlResultsHandler {
   async main({
     crawl_id,
     page = 1,
-    limit = 10,
+    take = 10,
   }: {
     crawl_id: string;
     page?: number;
-    limit?: number;
+    take?: number;
   }) {
-    const skip = (page - 1) * limit;
+    const skip = (page - 1) * take;
 
     const crawl = await this.crawlService.findById(crawl_id);
 
@@ -27,7 +27,7 @@ export class CepCrawlResultsHandler {
     }
 
     const [results, total] = await Promise.all([
-      this.crawlService.findResults(crawl_id, skip, limit),
+      this.crawlService.findResults(crawl_id, skip, take),
       this.crawlService.countResults(crawl_id),
     ]);
 
@@ -43,6 +43,6 @@ export class CepCrawlResultsHandler {
       };
     });
 
-    return new CepCrawlResultsResponse(dtos, page, limit, total);
+    return new CepCrawlResultsResponse(dtos, page, take, total);
   }
 }
