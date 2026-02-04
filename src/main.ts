@@ -26,7 +26,7 @@ async function bootstrap() {
 
   const args = process.argv.slice(2);
   const roleArg = args.find((arg) => arg.startsWith('--role='));
-  const role = roleArg ? roleArg.split('=')[1] : null;
+  const role = process.env.ROLE ?? (roleArg ? roleArg.split('=')[1] : null);
 
   const runApi = !role || role === 'api';
 

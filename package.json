@@ -12,6 +12,8 @@
     "start:dev": "nest start -b swc --type-check --watch",
     "start:debug": "nest start -b swc --type-check --debug --watch",
     "start:prod": "node dist/main",
+    "start:api": "nest start -b swc --type-check --watch -- --role=api",
+    "start:worker": "nest start -b swc --type-check --watch -- --role=worker",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
