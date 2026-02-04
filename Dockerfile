@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:24-alpine
 
 WORKDIR /usr/src/app
 
@@ -13,13 +13,13 @@ RUN apk --no-cache add curl
 COPY . .
 
 # Generate Prisma Client
-RUN npx prisma generate
+RUN pnpm prisma generate
 
 # Build application
 RUN pnpm build
 
 # Expose port
-EXPOSE 3000
+EXPOSE ${API_PORT}
 
 # Start application
 CMD ["pnpm", "start:prod"]
