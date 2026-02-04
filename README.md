@@ -1,4 +1,5 @@
 # teste-tecnico-backend-2025-trimestre-4
+
 Teste técnico para a posição de Backend Dev. Edição do quarto trimestre de 2025.
 
 ## A proposta: Crawler assíncrono de CEPs + Fila + MongoDB
@@ -25,64 +26,61 @@ A ideia é bem simples:
 }
 ```
 
-* [ ] validar:
+- [ ] validar:
+  - [ ] formato dos CEPs
+  - [ ] `cep_start` menor ou igual a `cep_end`
+  - [ ] tamanho máximo do range (critério livre)
 
-  * [ ] formato dos CEPs
-  * [ ] `cep_start` menor ou igual a `cep_end`
-  * [ ] tamanho máximo do range (critério livre)
-* [ ] criar um identificador único da requisição (`crawl_id`)
-* [ ] inserir **um item na fila para cada CEP do range**
-* [ ] retornar:
-
-  * [ ] código de status `202 Accepted`
-  * [ ] o `crawl_id` gerado
+- [ ] criar um identificador único da requisição (`crawl_id`)
+- [ ] inserir **um item na fila para cada CEP do range**
+- [ ] retornar:
+  - [ ] código de status `202 Accepted`
+  - [ ] o `crawl_id` gerado
 
 ---
 
 ### Consulta de status
 
-* [ ] uma rota `GET /cep/crawl/:crawl_id` que retorna o status do processamento
-* [ ] o status deve conter, no mínimo:
+- [ ] uma rota `GET /cep/crawl/:crawl_id` que retorna o status do processamento
+- [ ] o status deve conter, no mínimo:
+  - [ ] total de CEPs
+  - [ ] quantidade processada
+  - [ ] quantidade de sucessos
+  - [ ] quantidade de erros
+  - [ ] status geral da requisição (`pending`, `running`, `finished`, `failed`)
 
-  * [ ] total de CEPs
-  * [ ] quantidade processada
-  * [ ] quantidade de sucessos
-  * [ ] quantidade de erros
-  * [ ] status geral da requisição (`pending`, `running`, `finished`, `failed`)
-* [ ] retornar:
-
-  * [ ] `404` caso o `crawl_id` não exista
-  * [ ] `200` caso exista
+- [ ] retornar:
+  - [ ] `404` caso o `crawl_id` não exista
+  - [ ] `200` caso exista
 
 ---
 
 ### (Opcional) Consulta de resultados
 
-* [ ] uma rota `GET /cep/crawl/:crawl_id/results`
-* [ ] retornar os resultados já processados
-* [ ] paginação simples é desejável
+- [ ] uma rota `GET /cep/crawl/:crawl_id/results`
+- [ ] retornar os resultados já processados
+- [ ] paginação simples é desejável
 
 ---
 
 ## Processamento assíncrono
 
-* [ ] o processamento dos CEPs deve ocorrer fora do ciclo da requisição HTTP
-* [ ] cada CEP deve ser consumido individualmente a partir de uma fila
-* [ ] para cada CEP:
-
-  * [ ] consultar a API do ViaCEP
-  * [ ] em caso de sucesso, persistir o endereço no MongoDB
-  * [ ] em caso de CEP inexistente, registrar o erro associado ao `crawl_id`
-  * [ ] em caso de falha temporária, permitir retry
+- [ ] o processamento dos CEPs deve ocorrer fora do ciclo da requisição HTTP
+- [ ] cada CEP deve ser consumido individualmente a partir de uma fila
+- [ ] para cada CEP:
+  - [ ] consultar a API do ViaCEP
+  - [ ] em caso de sucesso, persistir o endereço no MongoDB
+  - [ ] em caso de CEP inexistente, registrar o erro associado ao `crawl_id`
+  - [ ] em caso de falha temporária, permitir retry
 
 ---
 
 ## Fila assíncrona
 
-* [ ] sugerimos o uso do **ElasticMQ** em Docker
-  ([https://github.com/softwaremill/elasticmq](https://github.com/softwaremill/elasticmq)), por ser compatível com a API do Amazon SQS
-* [ ] o candidato pode utilizar outra solução de fila, desde que justifique a escolha
-* [ ] o sistema deve garantir que o consumo da fila **não exceda limites da API externa**
+- [ ] sugerimos o uso do **ElasticMQ** em Docker
+      ([https://github.com/softwaremill/elasticmq](https://github.com/softwaremill/elasticmq)), por ser compatível com a API do Amazon SQS
+- [ ] o candidato pode utilizar outra solução de fila, desde que justifique a escolha
+- [ ] o sistema deve garantir que o consumo da fila **não exceda limites da API externa**
 
 ```plain
 A API do ViaCEP pode aplicar limitação de requisições.
@@ -97,13 +95,12 @@ da API externa.
 
 ## Persistência
 
-* [ ] utilizar **MongoDB** para persistência dos dados
-* [ ] os dados devem estar associados à requisição que originou o processamento
-* [ ] o modelo de dados é livre, mas deve permitir:
-
-  * [ ] acompanhar progresso
-  * [ ] identificar erros
-  * [ ] consultar resultados por `crawl_id`
+- [ ] utilizar **MongoDB** para persistência dos dados
+- [ ] os dados devem estar associados à requisição que originou o processamento
+- [ ] o modelo de dados é livre, mas deve permitir:
+  - [ ] acompanhar progresso
+  - [ ] identificar erros
+  - [ ] consultar resultados por `crawl_id`
 
 ---
 
@@ -111,13 +108,12 @@ da API externa.
 
 Para infra, vamos usar o seguinte conjunto:
 
-* [ ] um arquivo `Dockerfile` para a aplicação
-* [ ] um arquivo `docker-compose.yml` contendo, no mínimo:
-
-  * [ ] aplicação HTTP
-  * [ ] worker de processamento assíncrono
-  * [ ] MongoDB
-  * [ ] serviço de fila (ElasticMQ ou equivalente)
+- [ ] um arquivo `Dockerfile` para a aplicação
+- [ ] um arquivo `docker-compose.yml` contendo, no mínimo:
+  - [ ] aplicação HTTP
+  - [ ] worker de processamento assíncrono
+  - [ ] MongoDB
+  - [ ] serviço de fila (ElasticMQ ou equivalente)
 
 ---
 
@@ -145,3 +141,35 @@ Este teste busca avaliar as seguintes competências:
 6. Domínio sobre a runtime `node.js`;
 7. Capacidade de organização de código e separação de responsabilidades;
 8. Capacidade de lidar com contêineres Docker e ambientes compostos.
+
+---
+
+## Como Rodar o Projeto
+
+### Pré-requisitos
+
+- Docker e Docker Compose instalados.
+- Node.js 24+ (para rodar scripts locais se necessário, mas o projeto usa Docker).
+
+### Passos
+
+1. Clone o repositório.
+2. Copie o arquivo de exemplo de variáveis de ambiente:
+   ```bash
+   cp .env.example .env
+   ```
+3. Suba os containers com Docker Compose:
+   ```bash
+   docker-compose up --build
+   ```
+4. A API estará disponível em `http://localhost:3000`.
+5. A documentação Swagger estará em `http://localhost:3000/documentation`.
+
+### Testes
+
+Para rodar os testes unitários (executados localmente, requer Node.js):
+
+```bash
+pnpm install
+pnpm test
+```
