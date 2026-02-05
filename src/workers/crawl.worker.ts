@@ -89,7 +89,8 @@ export class CrawlWorker implements OnModuleInit {
       return;
     }
 
-    const { crawlId, cep } = body;
+    const crawlId = body.crawlId || (body as any).crawl_id;
+    const { cep } = body;
 
     try {
       const data = await this.addressService.getAddress(cep, crawlId);
