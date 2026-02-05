@@ -15,6 +15,7 @@ export class AddressService {
 
   async getAddress(cep: string, crawlId?: string): Promise<AddressData | null> {
     const logPrefix = crawlId ? `[CrawlID: ${crawlId}] ` : '';
+
     try {
       const address = await this.viaCep.getAddress(cep);
       if (address) {

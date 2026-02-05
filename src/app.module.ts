@@ -6,7 +6,6 @@ import { CrawlService } from './services/crawl.service';
 import { CepCacheService } from './services/cep-cache.service';
 import { AddressService } from './services/address.service';
 import { ViaCepProvider } from './providers/viacep.provider';
-import { OpenCepProvider } from './providers/opencep.provider';
 import { CepCrawlCreateHandler } from './handlers/cep.crawl.create.handler';
 import { CepCrawlGetHandler } from './handlers/cep.crawl.get.handler';
 import { CepCrawlResultsHandler } from './handlers/cep.crawl.results.handler';
@@ -39,7 +38,6 @@ import { CrawlRepository } from './repositories/crawl.repository';
     CepCacheService,
     AddressService,
     ViaCepProvider,
-    OpenCepProvider,
     CepCrawlCreateHandler,
     CepCrawlGetHandler,
     CepCrawlResultsHandler,
