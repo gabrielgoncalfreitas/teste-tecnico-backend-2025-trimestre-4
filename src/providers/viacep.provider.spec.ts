@@ -10,6 +10,7 @@ describe('ViaCepProvider', () => {
     configService = {
       get: jest.fn().mockImplementation((key: string) => {
         if (key === 'VIACEP_URL') return 'https://viacep.com.br/ws';
+        if (key === 'VIACEP_TIMEOUT_MS') return '500';
         return null;
       }),
     } as any;
@@ -31,7 +32,7 @@ describe('ViaCepProvider', () => {
     expect(result).toEqual(mockData);
     expect(mockedAxios.get).toHaveBeenCalledWith(
       'https://viacep.com.br/ws/01001000/json/',
-      { timeout: 4000 },
+      { timeout: 500 },
     );
   });
   it('should return null when ViaCEP returns an error flag', async () => {
@@ -39,10 +40,56 @@ describe('ViaCepProvider', () => {
     const result = await provider.getAddress('99999999');
     expect(result).toBeNull();
   });
-  it('should throw error when request fails', async () => {
-    mockedAxios.get.mockRejectedValue(new Error('Network Error'));
-    await expect(provider.getAddress('01001000')).rejects.toThrow(
-      'Network Error',
-    );
+  it('should retry on timeout and eventually return null', async () => {
+    const timeoutError = { code: 'ECONNABORTED', message: 'timeout' };
+    mockedAxios.get.mockRejectedValue(timeoutError);
+
+    jest.useFakeTimers();
+    const promise = provider.getAddress('01001000');
+
+    // 1 initial + 3 retries = 4 calls
+    for (let i = 0; i < 4; i++) {
+      // Flush microtasks so the code reaches the await axios.get
+      await Promise.resolve();
+      await Promise.resolve();
+      // Advance timers for the exponential backoff sleep
+      jest.advanceTimersByTime(10000);
+    }
+
+    const result = await promise;
+    expect(result).toBeNull();
+    expect(mockedAxios.get).toHaveBeenCalledTimes(4);
+    jest.useRealTimers();
+  });
+
+  it('should retry on 429 status and eventually return null', async () => {
+    const error429 = {
+      response: { status: 429 },
+      message: 'Too Many Requests',
+    };
+    mockedAxios.get.mockRejectedValue(error429);
+
+    jest.useFakeTimers();
+    const promise = provider.getAddress('01001000');
+
+    for (let i = 0; i < 4; i++) {
+      await Promise.resolve();
+      await Promise.resolve();
+      jest.advanceTimersByTime(10000);
+    }
+
+    const result = await promise;
+    expect(result).toBeNull();
+    expect(mockedAxios.get).toHaveBeenCalledTimes(4);
+    jest.useRealTimers();
+  });
+
+  it('should NOT retry on 404 status', async () => {
+    const error404 = { response: { status: 404 }, message: 'Not Found' };
+    mockedAxios.get.mockRejectedValue(error404);
+
+    const result = await provider.getAddress('01001000');
+    expect(result).toBeNull();
+    expect(mockedAxios.get).toHaveBeenCalledTimes(1);
   });
 });

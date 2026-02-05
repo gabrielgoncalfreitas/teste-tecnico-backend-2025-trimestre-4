@@ -17,6 +17,8 @@ interface CrawlPayload {
 export class CrawlWorker implements OnModuleInit {
   private readonly logger = new Logger(CrawlWorker.name);
   private isPolling = false;
+  private consecutiveErrors = 0;
+  private readonly MAX_CONSECUTIVE_ERRORS = 5;
 
   constructor(
     private readonly sqsService: SqsService,
@@ -64,10 +66,21 @@ export class CrawlWorker implements OnModuleInit {
           }
         }
       } catch (error) {
+        this.consecutiveErrors++;
         const message =
           error instanceof Error ? error.message : 'Unknown error';
-        this.logger.error('Polling error', message);
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+
+        // Exponential backoff for the polling loop itself if it keeps failing
+        const baseDelay = 5000;
+        const adaptiveDelay = Math.min(
+          baseDelay * Math.pow(2, Math.min(this.consecutiveErrors, 5)),
+          60000, // Max 1 minute pause
+        );
+
+        this.logger.error(
+          `Polling error (Consecutive: ${this.consecutiveErrors}). Waiting ${adaptiveDelay}ms: ${message}`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, adaptiveDelay));
       }
     }
   }
@@ -117,6 +130,7 @@ export class CrawlWorker implements OnModuleInit {
       });
 
       await this.sqsService.deleteMessage(message.ReceiptHandle as string);
+      this.consecutiveErrors = 0; // Reset on success
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
       this.logger.warn(
