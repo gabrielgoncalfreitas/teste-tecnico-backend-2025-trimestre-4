@@ -40,18 +40,28 @@ export class ViaCepProvider implements AddressProvider {
         }
         // If it's a "not found" error from API (erro: true), no need to retry
         return null;
-      } catch (error: any) {
+      } catch (error: unknown) {
         attempt++;
         const isLastAttempt = attempt > this.maxRetries;
-        const isTimeout =
-          error.code === 'ECONNABORTED' || error.message?.includes('timeout');
-        const isThrottled = error.response?.status === 429;
+        let isTimeout = false;
+        let isThrottled = false;
+        let status: number | undefined;
+        let message = 'Unknown error';
 
-        if (isLastAttempt || (!isTimeout && !isThrottled && error.response)) {
+        if (axios.isAxiosError(error)) {
+          isTimeout =
+            error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+          status = error.response?.status;
+          isThrottled = status === 429;
+          message = error.message;
+        } else if (error instanceof Error) {
+          message = error.message;
+        }
+
+        if (isLastAttempt || (!isTimeout && !isThrottled && status)) {
           // If it's a real 404/400 or we exhausted retries, log and give up
-          const status = error.response?.status;
           this.logger.error(
-            `Failed to fetch CEP ${cep}${status ? ` (Status: ${status})` : ''}: ${error.message}`,
+            `Failed to fetch CEP ${cep}${status ? ` (Status: ${status})` : ''}: ${message}`,
           );
           return null;
         }

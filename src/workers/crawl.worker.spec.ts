@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { Message } from '@aws-sdk/client-sqs';
 import { AddressData } from '../interfaces/address.interface';
 import { CrawResultStatusEnum } from 'generated/prisma';
+import { WorkerRepository } from '../repositories/worker.repository';
 describe('CrawlWorker', () => {
   let worker: CrawlWorker;
   let sqsService: jest.Mocked<SqsService>;
@@ -47,7 +48,18 @@ describe('CrawlWorker', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue('0'), // Set to 0 to speed up tests
+            get: jest.fn().mockImplementation((key: string) => {
+              if (key === 'WORKER_RATE_LIMIT_MS') return '0';
+              if (key === 'WORKER_CONCURRENCY') return '3';
+              return null;
+            }),
+          },
+        },
+        {
+          provide: WorkerRepository,
+          useValue: {
+            upsertHeartbeat: jest.fn().mockResolvedValue({}),
+            getActiveWorkers: jest.fn().mockResolvedValue([]),
           },
         },
       ],
@@ -237,14 +249,18 @@ describe('CrawlWorker', () => {
       expect(sqsService.deleteMessage).not.toHaveBeenCalled();
     });
 
-    it('should handle polling error and wait 5s', async () => {
+    it('should handle polling error and wait adaptive backoff', async () => {
       process.argv = ['node', 'app', '--role=worker'];
       sqsService.receiveMessages.mockRejectedValue(new Error('SQS Down'));
       const pollPromise = worker.startPolling();
+
+      // We expect the consecutiveErrors to increase and then it waits
       await Promise.resolve();
       await Promise.resolve();
       await Promise.resolve();
-      jest.advanceTimersByTime(5000);
+
+      // adaptiveDelay for 1st error is 5000 * 2^1 = 10000ms
+      jest.advanceTimersByTime(10000);
       worker['isPolling'] = false;
       await Promise.resolve();
       await pollPromise;

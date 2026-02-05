@@ -68,3 +68,13 @@ model cep {
 
   @@map("ceps")
 }
+
+model worker {
+  id         String   @id @default(uuid(7)) @map("_id")
+  hostname   String?
+  role       String   @default("worker")
+  last_seen  DateTime @default(now())
+  created_at DateTime @default(now())
+
+  @@map("workers")
+}

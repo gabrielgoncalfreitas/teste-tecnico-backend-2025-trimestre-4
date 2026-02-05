@@ -5,8 +5,11 @@ import { SqsService } from '../services/sqs.service';
 import { AddressService } from '../services/address.service';
 import { CrawlService } from '../services/crawl.service';
 import { CepCacheService } from '../services/cep-cache.service';
-import { AddressData } from '../interfaces/address.interface';
+// AddressData import removed as it was unused
 import { CrawResultStatusEnum, Prisma } from 'generated/prisma';
+import { WorkerRepository } from '../repositories/worker.repository';
+import * as os from 'os';
+import { randomUUID } from 'crypto';
 
 interface CrawlPayload {
   crawlId: string;
@@ -16,9 +19,11 @@ interface CrawlPayload {
 @Injectable()
 export class CrawlWorker implements OnModuleInit {
   private readonly logger = new Logger(CrawlWorker.name);
+  private readonly MAX_CONSECUTIVE_ERRORS = 5;
   private isPolling = false;
   private consecutiveErrors = 0;
-  private readonly MAX_CONSECUTIVE_ERRORS = 5;
+  private readonly workerId = randomUUID();
+  private readonly hostname = os.hostname();
 
   constructor(
     private readonly sqsService: SqsService,
@@ -26,11 +31,48 @@ export class CrawlWorker implements OnModuleInit {
     private readonly crawlService: CrawlService,
     private readonly cepCacheService: CepCacheService,
     private readonly configService: ConfigService,
+    private readonly workerRepository: WorkerRepository,
   ) {}
 
   onModuleInit() {
-    this.startPolling().catch((err: Error) =>
-      this.logger.error('Failed to start polling', err.message),
+    this.startPolling().catch((err: unknown) =>
+      this.logger.error(
+        'Failed to start polling',
+        err instanceof Error ? err.message : 'Unknown error',
+      ),
+    );
+    this.startHeartbeat();
+  }
+
+  private startHeartbeat() {
+    // Immediate first registration
+    this.registerWorker().catch((err: unknown) =>
+      this.logger.error(
+        'Initial worker registration failed',
+        err instanceof Error ? err.message : 'Unknown error',
+      ),
+    );
+
+    setInterval(() => {
+      this.registerWorker().catch((err: unknown) =>
+        this.logger.error(
+          'Worker heartbeat failed',
+          err instanceof Error ? err.message : 'Unknown error',
+        ),
+      );
+    }, 15000); // 15s heartbeats
+  }
+
+  private async registerWorker() {
+    const args = process.argv.slice(2);
+    const roleArg = args.find((arg) => arg.startsWith('--role='));
+    const role =
+      process.env.ROLE ?? (roleArg ? roleArg.split('=')[1] : 'worker');
+
+    await this.workerRepository.upsertHeartbeat(
+      this.workerId,
+      this.hostname,
+      role,
     );
   }
 
@@ -57,11 +99,18 @@ export class CrawlWorker implements OnModuleInit {
             10,
           );
 
-          // STRICT SEQUENTIAL PROCESSING
-          // ViaCEP is blocking parallel requests. We must process one by one.
-          for (const msg of messages) {
-            await this.processMessage(msg);
-            // Wait specific delay between requests to respect API limits
+          const concurrency = parseInt(
+            this.configService.get<string>('WORKER_CONCURRENCY') || '3',
+            10,
+          );
+
+          // Process messages in parallel batches to increase throughput
+          // while respecting the rate limit per instance.
+          for (let i = 0; i < messages.length; i += concurrency) {
+            const batch = messages.slice(i, i + concurrency);
+            await Promise.all(batch.map((msg) => this.processMessage(msg)));
+
+            // Wait specific delay between batches
             await new Promise((resolve) => setTimeout(resolve, rateLimit));
           }
         }
@@ -90,19 +139,14 @@ export class CrawlWorker implements OnModuleInit {
 
     let body: CrawlPayload;
     try {
-      body = JSON.parse(message.Body);
-    } catch (e) {
+      body = JSON.parse(message.Body) as CrawlPayload;
+    } catch {
       this.logger.error('Failed to parse message body', message.Body);
-      // If we can't parse it, we should probably delete it to avoid infinite loop,
-      // or move to DLQ. For now, just return (it stays in queue or eventually DLQ).
-      // Actually, standard practice: if invalid, delete or DLQ.
-      // Let's just log and return for now as per previous behavior (mostly).
-      // Previous behavior: JSON.parse was inside try, if failed -> catch -> log "Failed to process message ... Unexpected token..."
-      // and NOT deleted.
       return;
     }
 
-    const crawlId = body.crawlId || (body as any).crawl_id;
+    const crawlId =
+      body.crawlId || (body as unknown as { crawl_id: string }).crawl_id;
     const { cep } = body;
 
     try {

@@ -19,6 +19,9 @@ describe('ViaCepProvider', () => {
     // Silence logger
     jest.spyOn(provider['logger'], 'error').mockImplementation(() => undefined);
     jest.spyOn(provider['logger'], 'warn').mockImplementation(() => undefined);
+    mockedAxios.isAxiosError.mockImplementation(
+      (err: any) => !!err.response || err.code === 'ECONNABORTED',
+    );
     jest.clearAllMocks();
   });
   it('should return address data when request is successful', async () => {

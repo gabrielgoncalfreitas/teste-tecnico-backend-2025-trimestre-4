@@ -17,6 +17,7 @@ import { CrawlWorker } from './workers/crawl.worker';
 
 import { CepRepository } from './repositories/cep.repository';
 import { CrawlRepository } from './repositories/crawl.repository';
+import { WorkerRepository } from './repositories/worker.repository';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { CrawlRepository } from './repositories/crawl.repository';
     CrawlWorker,
     CepRepository,
     CrawlRepository,
+    WorkerRepository,
   ],
 })
 export class AppModule {}

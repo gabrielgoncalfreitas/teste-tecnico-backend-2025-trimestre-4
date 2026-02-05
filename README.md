@@ -2,7 +2,6 @@
 
 Teste técnico para a posição de Backend Dev. Edição do quarto trimestre de 2025.
 
-
 ## Como Rodar o Projeto
 
 ### Pré-requisitos
@@ -24,7 +23,6 @@ Teste técnico para a posição de Backend Dev. Edição do quarto trimestre de 
 4. A API estará disponível em `http://localhost:3000`.
 5. A documentação Swagger estará em `http://localhost:3000/documentation`.
 
-
 ### URLs
 
 - API: `http://localhost:3000`
@@ -42,6 +40,33 @@ Para rodar os testes unitários (executados localmente, requer Node.js):
 pnpm install
 pnpm test
 ```
+
+---
+
+## Variáveis de Ambiente
+
+O projeto utiliza diversas variáveis de ambiente para configuração. Abaixo estão detalhadas as principais:
+
+| Variável               | Descrição                                                                                              | Valor Padrão               |
+| :--------------------- | :----------------------------------------------------------------------------------------------------- | :------------------------- |
+| `API_PORT`             | Porta onde a API NestJS será exposta.                                                                  | `3000`                     |
+| `PRISMA_DATABASE_URL`  | URL de conexão do Prisma com o MongoDB (uso local).                                                    | -                          |
+| `DOCKER_DATABASE_URL`  | URL de conexão do MongoDB dentro da rede Docker.                                                       | -                          |
+| `SQS_ENDPOINT`         | Endpoint do ElasticMQ (SQS local) para uso fora do Docker.                                             | `http://localhost:9324`    |
+| `DOCKER_SQS_ENDPOINT`  | Endpoint do ElasticMQ dentro da rede Docker.                                                           | `http://elasticmq:9324`    |
+| `SQS_QUEUE_NAME`       | Nome da fila SQS para processamento de CEPs.                                                           | `cep-crawl-queue`          |
+| **Escalabilidade**     |                                                                                                        |                            |
+| `WORKER_REPLICAS`      | Número de instâncias do worker no Docker Compose (Escala Horizontal).                                  | `1`                        |
+| `WORKER_CONCURRENCY`   | Número de mensagens processadas em paralelo por cada instância do worker (Escala Vertical).            | `3`                        |
+| `WORKER_RATE_LIMIT_MS` | Atraso (delay) entre o processamento de lotes de mensagens para respeitar o rate limit da API externa. | `400`                      |
+| **Providers Externos** |                                                                                                        |                            |
+| `VIACEP_URL`           | URL base da API do ViaCEP.                                                                             | `https://viacep.com.br/ws` |
+| `VIACEP_TIMEOUT_MS`    | Timeout máximo para requisições ao ViaCEP (em ms).                                                     | `5000`                     |
+| **Infraestrutura**     |                                                                                                        |                            |
+| `MONGO_PORT`           | Porta do banco de dados MongoDB.                                                                       | `27017`                    |
+| `MONGO_EXPRESS_PORT`   | Porta da interface visual do Mongo Express.                                                            | `8081`                     |
+| `ELASTICMQ_PORT`       | Porta da API SQS do ElasticMQ.                                                                         | `9324`                     |
+| `ELASTICMQ_UI_PORT`    | Porta da interface visual do ElasticMQ.                                                                | `9325`                     |
 
 ---
 
@@ -118,7 +143,7 @@ A ideia é bem simples:
 
 ---
 
-## Fila assíncrona
+## Fila assíncronae
 
 - [ ] sugerimos o uso do **ElasticMQ** em Docker
       ([https://github.com/softwaremill/elasticmq](https://github.com/softwaremill/elasticmq)), por ser compatível com a API do Amazon SQS
