@@ -9,7 +9,7 @@ services:
       mongo:
         condition: service_healthy
       elasticmq:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:${API_PORT}/health']
       interval: 10s
@@ -25,7 +25,7 @@ services:
       mongo:
         condition: service_healthy
       elasticmq:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', "ps aux | grep 'node dist/main' || exit 1"]
       interval: 10s
@@ -53,7 +53,8 @@ services:
       mongo:
         condition: service_healthy
     healthcheck:
-      test: ['CMD', 'wget', '--spider', 'http://localhost:${MONGO_EXPRESS_PORT}']
+      test:
+        ['CMD', 'wget', '--spider', 'http://localhost:${MONGO_EXPRESS_PORT}']
       interval: 20s
       timeout: 5s
       retries: 3
@@ -65,3 +66,8 @@ services:
     ports:
       - '${ELASTICMQ_PORT}:9324' # REST-SQS API
       - '${ELASTICMQ_UI_PORT}:9325' # UI Dashboard (optional)
+    healthcheck:
+      test: ['CMD', 'nc', '-z', 'localhost', '9324']
+      interval: 10s
+      timeout: 5s
+      retries: 3
