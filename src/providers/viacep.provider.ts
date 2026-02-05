@@ -4,6 +4,8 @@ import axios from 'axios';
 import { AddressProvider } from '../interfaces/address-provider.interface';
 import { AddressData } from '../interfaces/address.interface';
 
+import { ThrottlingError } from '../errors/throttling.error';
+
 @Injectable()
 export class ViaCepProvider implements AddressProvider {
   private readonly logger = new Logger(ViaCepProvider.name);
@@ -42,7 +44,6 @@ export class ViaCepProvider implements AddressProvider {
         return null;
       } catch (error: unknown) {
         attempt++;
-        const isLastAttempt = attempt > this.maxRetries;
         let isTimeout = false;
         let isThrottled = false;
         let status: number | undefined;
@@ -56,6 +57,14 @@ export class ViaCepProvider implements AddressProvider {
           message = error.message;
         } else if (error instanceof Error) {
           message = error.message;
+        }
+
+        const isLastAttempt = attempt > this.maxRetries;
+
+        if (isThrottled && isLastAttempt) {
+          throw new ThrottlingError(
+            `ViaCEP throttling threshold reached for CEP ${cep}. Circuit breaker triggered.`,
+          );
         }
 
         if (isLastAttempt || (!isTimeout && !isThrottled && status)) {

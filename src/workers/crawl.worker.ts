@@ -10,6 +10,7 @@ import { CrawResultStatusEnum, Prisma } from 'generated/prisma';
 import { WorkerRepository } from '../repositories/worker.repository';
 import * as os from 'os';
 import { randomUUID } from 'crypto';
+import { ThrottlingError } from '../errors/throttling.error';
 
 interface CrawlPayload {
   crawlId: string;
@@ -176,6 +177,11 @@ export class CrawlWorker implements OnModuleInit {
       await this.sqsService.deleteMessage(message.ReceiptHandle as string);
       this.consecutiveErrors = 0; // Reset on success
     } catch (error: unknown) {
+      if (error instanceof ThrottlingError) {
+        // Rethrow ThrottlingError to trigger adaptive delay in startPolling
+        throw error;
+      }
+
       const msg = error instanceof Error ? error.message : 'Unknown error';
       this.logger.warn(
         `Failed to process crawl ${crawlId} for CEP ${cep}: ${msg}. Message will be retried.`,
