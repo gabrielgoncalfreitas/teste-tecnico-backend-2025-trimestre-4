@@ -140,6 +140,20 @@ describe('CrawlRepository', () => {
         }),
       );
     });
+
+    it('should find results with cep range', async () => {
+      await repository.findResults('c1', 0, 10, {
+        cep_start: '1000',
+        cep_end: '2000',
+      });
+      expect(prisma.crawl_result.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            cep: { gte: '1000', lte: '2000' },
+          }),
+        }),
+      );
+    });
   });
 
   describe('countResults', () => {
@@ -158,6 +172,46 @@ describe('CrawlRepository', () => {
             OR: expect.arrayContaining([
               { cep: { contains: '010', mode: 'insensitive' } },
             ]),
+          }),
+        }),
+      );
+    });
+
+    it('should count results with status filter', async () => {
+      await repository.countResults('c1', {
+        status: CrawResultStatusEnum.SUCCESS,
+      });
+      expect(prisma.crawl_result.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: CrawResultStatusEnum.SUCCESS,
+          }),
+        }),
+      );
+    });
+
+    it('should count results with cep range', async () => {
+      await repository.countResults('c1', {
+        cep_start: '1000',
+        cep_end: '2000',
+      });
+      expect(prisma.crawl_result.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            cep: { gte: '1000', lte: '2000' },
+          }),
+        }),
+      );
+    });
+
+    it('should count results with matching_ceps', async () => {
+      await repository.countResults('c1', {
+        matching_ceps: ['01001000'],
+      });
+      expect(prisma.crawl_result.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: expect.arrayContaining([{ cep: { in: ['01001000'] } }]),
           }),
         }),
       );

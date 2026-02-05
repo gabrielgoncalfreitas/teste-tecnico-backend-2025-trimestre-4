@@ -127,6 +127,45 @@ describe('CrawlWorker', () => {
       await promise;
       expect(sqsService.deleteMessage).not.toHaveBeenCalled();
     });
+
+    it('should log error when non-retryable error occurs', async () => {
+      const mockMessage: Message = {
+        Body: JSON.stringify({ crawl_id: 'c1', cep: '01001000' }),
+        ReceiptHandle: 'h5',
+        MessageId: 'm5',
+      };
+      addressService.getAddress.mockResolvedValue({
+        logradouro: 'Sé',
+      } as AddressData);
+      crawlService.saveSingleResult.mockRejectedValue(new Error('DB Error'));
+      const loggerSpy = jest.spyOn(worker['logger'], 'error');
+
+      const promise = (worker as any).processMessage(mockMessage);
+      jest.runAllTimers();
+      await promise;
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Failed to process message m5',
+        'DB Error',
+      );
+    });
+
+    it('should handle unknown error in inner try/catch', async () => {
+      const mockMessage: Message = {
+        Body: JSON.stringify({ crawl_id: 'c1', cep: '01001000' }),
+        ReceiptHandle: 'h6',
+      };
+      addressService.getAddress.mockRejectedValue('String Error'); // Not an Error object
+      const loggerSpy = jest.spyOn(worker['logger'], 'warn');
+
+      const promise = (worker as any).processMessage(mockMessage);
+      jest.runAllTimers();
+      await promise;
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Transient error'),
+      );
+    });
   });
 
   describe('startPolling', () => {
@@ -134,6 +173,31 @@ describe('CrawlWorker', () => {
       process.argv = ['node', 'app', '--role=api'];
       await worker.startPolling();
       expect(worker['isPolling']).toBe(false);
+    });
+
+    it('should start if role is worker via env', async () => {
+      jest.useRealTimers();
+      process.env.ROLE = 'worker';
+      process.argv = ['node', 'app']; // Clear args
+      const mockMessage: Message = {
+        Body: JSON.stringify({ crawl_id: 'c1', cep: '01001000' }),
+      };
+      sqsService.receiveMessages.mockResolvedValueOnce([mockMessage]);
+      sqsService.receiveMessages.mockImplementation(() => {
+        worker['isPolling'] = false;
+        return Promise.resolve([]);
+      });
+      await worker.startPolling();
+      expect(worker['isPolling']).toBe(false); // Loop finished
+      expect(sqsService.receiveMessages).toHaveBeenCalled();
+      delete process.env.ROLE;
+    });
+
+    it('should not start if already polling', async () => {
+      worker['isPolling'] = true;
+      await worker.startPolling();
+      expect(sqsService.receiveMessages).not.toHaveBeenCalled();
+      worker['isPolling'] = false; // Cleanup
     });
 
     it('should start polling and process messages if role is worker', async () => {

@@ -60,6 +60,21 @@ describe('SqsService', () => {
     await service.onModuleInit();
     expect(configService.get).toHaveBeenCalledWith('DOCKER_SQS_ENDPOINT');
   });
+
+  it('should initialize on module init with fallback queue url', async () => {
+    (fs.existsSync as jest.Mock).mockReturnValue(false);
+    (configService.get as jest.Mock).mockImplementation((key) => {
+      if (key === 'SQS_QUEUE_URL') return undefined; // Force fallback
+      if (key === 'AWS_ACCOUNT_ID') return '123';
+      if (key === 'SQS_QUEUE_NAME') return 'qname';
+      if (key === 'SQS_ENDPOINT') return 'http://sqs';
+      return 'test';
+    });
+    (mockSqsClient.send as jest.Mock).mockResolvedValue({} as any);
+    await service.onModuleInit();
+    expect(service['queueUrl']).toBe('http://sqs/123/qname');
+  });
+
   it('should handle error when creating queue', async () => {
     (mockSqsClient.send as jest.Mock).mockRejectedValue(
       new Error('Queue Error'),
@@ -67,6 +82,13 @@ describe('SqsService', () => {
     await service.createQueueIfNotExists('test');
     expect(mockSqsClient.send).toHaveBeenCalled(); // Should just catch and log
   });
+
+  it('should handle non-Error when creating queue', async () => {
+    (mockSqsClient.send as jest.Mock).mockRejectedValue('String Error');
+    await service.createQueueIfNotExists('test');
+    expect(mockSqsClient.send).toHaveBeenCalled();
+  });
+
   it('should send a single message', async () => {
     await service.sendMessage({ test: 'data' });
     expect(mockSqsClient.send).toHaveBeenCalledWith(
@@ -115,15 +137,40 @@ describe('SqsService', () => {
     await service.deleteMessage('handle');
     expect(mockSqsClient.send).toHaveBeenCalled(); // Should just catch and log
   });
+
+  it('should handle non-Error when delete fails', async () => {
+    (mockSqsClient.send as jest.Mock).mockRejectedValue('String Error');
+    await service.deleteMessage('handle');
+    expect(mockSqsClient.send).toHaveBeenCalled();
+  });
+
   it('should handle errors when sending fails', async () => {
     (mockSqsClient.send as jest.Mock).mockRejectedValue(new Error('SQS Error'));
     await expect(service.sendMessage({ data: 1 })).rejects.toThrow('SQS Error');
   });
+
+  it('should handle non-Error when sending fails', async () => {
+    (mockSqsClient.send as jest.Mock).mockRejectedValue('String Error');
+    await expect(service.sendMessage({ data: 1 })).rejects.toBe('String Error');
+  });
+
   it('should handle errors when batch fails', async () => {
     (mockSqsClient.send as jest.Mock).mockRejectedValue(
       new Error('Batch Error'),
     );
     await service.sendMessageBatch([1]);
     expect(mockSqsClient.send).toHaveBeenCalled(); // Logs only
+  });
+
+  it('should handle non-Error when batch fails', async () => {
+    (mockSqsClient.send as jest.Mock).mockRejectedValue('String Error');
+    await service.sendMessageBatch([1]);
+    expect(mockSqsClient.send).toHaveBeenCalled();
+  });
+
+  it('should handle non-Error when receive fails', async () => {
+    (mockSqsClient.send as jest.Mock).mockRejectedValue('String Error');
+    const result = await service.receiveMessages();
+    expect(result).toEqual([]);
   });
 });
