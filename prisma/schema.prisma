@@ -21,16 +21,17 @@ enum CrawResultStatusEnum {
 }
 
 model crawl {
-  id             String          @id @default(uuid(7)) @map("_id")
-  cep_start      String
-  cep_end        String
-  status         CrawlStatusEnum
-  total_ceps     Int             @default(0)
-  processed_ceps Int             @default(0)
-  success_ceps   Int             @default(0)
-  failed_ceps    Int             @default(0)
-  created_at     DateTime        @default(now())
-  updated_at     DateTime        @updatedAt
+  id               String          @id @default(uuid(7)) @map("_id")
+  cep_start        String
+  cep_end          String
+  status           CrawlStatusEnum
+  total_ceps       Int             @default(0)
+  processed_ceps   Int             @default(0)
+  success_ceps     Int             @default(0)
+  failed_ceps      Int             @default(0)
+  last_recovery_at DateTime?
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
 
   results crawl_result[]
 

@@ -30,7 +30,25 @@ export class CrawlService implements OnModuleInit {
       `Found ${unfinishedCrawls.length} unfinished crawls. Starting recovery...`,
     );
 
+    const TEN_MINUTES = 10 * 60 * 1000;
+
     for (const crawl of unfinishedCrawls) {
+      // Skip if recovery was done recently (within 10 minutes)
+      if (
+        crawl.last_recovery_at &&
+        Date.now() - crawl.last_recovery_at.getTime() < TEN_MINUTES
+      ) {
+        this.logger.log(
+          `Skipping crawl ${crawl.id} - recovery already in progress (last: ${crawl.last_recovery_at.toISOString()})`,
+        );
+        continue;
+      }
+
+      // Mark recovery in progress BEFORE queuing to prevent race conditions
+      await this.repository.update(crawl.id, {
+        last_recovery_at: new Date(),
+      });
+
       this.logger.log(`Recovering crawl ${crawl.id}...`);
       const existingCeps = new Set(
         await this.repository.getExistingCeps(crawl.id),
