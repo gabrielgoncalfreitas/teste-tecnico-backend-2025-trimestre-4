@@ -18,6 +18,7 @@ describe('CrawlRepository', () => {
               create: jest.fn(),
               findUnique: jest.fn(),
               update: jest.fn(),
+              findMany: jest.fn(),
             },
             crawl_result: {
               createMany: jest.fn(),
@@ -160,6 +161,34 @@ describe('CrawlRepository', () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('findUnfinished', () => {
+    it('should find unfinished crawls', async () => {
+      await repository.findUnfinished();
+      expect(prisma.crawl.findMany).toHaveBeenCalledWith({
+        where: {
+          status: {
+            in: [CrawlStatusEnum.PENDING, CrawlStatusEnum.RUNNING],
+          },
+        },
+      });
+    });
+  });
+
+  describe('getExistingCeps', () => {
+    it('should get existing ceps for a crawl', async () => {
+      (prisma.crawl_result.findMany as jest.Mock).mockResolvedValue([
+        { cep: '123' },
+        { cep: '456' },
+      ]);
+      const result = await repository.getExistingCeps('c1');
+      expect(prisma.crawl_result.findMany).toHaveBeenCalledWith({
+        where: { crawl_id: 'c1' },
+        select: { cep: true },
+      });
+      expect(result).toEqual(['123', '456']);
     });
   });
 });
