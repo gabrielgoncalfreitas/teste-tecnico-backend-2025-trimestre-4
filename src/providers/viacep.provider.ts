@@ -19,16 +19,12 @@ export class ViaCepProvider implements AddressProvider {
 
   async getAddress(cep: string): Promise<AddressData | null> {
     const cleanCep = cep.replace(/\D/g, '');
-    try {
-      const response = await axios.get<AddressData>(
-        `${this.url}/${cleanCep}/json/`,
-        { timeout: 4000 },
-      );
-      if (response.data && !response.data.erro) {
-        return response.data;
-      }
-    } catch (error: unknown) {
-      throw error;
+    const response = await axios.get<AddressData>(
+      `${this.url}/${cleanCep}/json/`,
+      { timeout: 4000 },
+    );
+    if (response.data && !response.data.erro) {
+      return response.data;
     }
     return null;
   }

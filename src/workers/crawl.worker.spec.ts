@@ -144,9 +144,9 @@ describe('CrawlWorker', () => {
       };
       sqsService.receiveMessages.mockResolvedValueOnce([mockMessage]);
       sqsService.receiveMessages.mockResolvedValueOnce([mockMessage]);
-      sqsService.receiveMessages.mockImplementation(async () => {
+      sqsService.receiveMessages.mockImplementation(() => {
         worker['isPolling'] = false;
-        return [];
+        return Promise.resolve([]);
       });
       const processSpy = jest
         .spyOn(worker as any, 'processMessage')

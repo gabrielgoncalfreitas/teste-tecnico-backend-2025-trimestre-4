@@ -4,6 +4,7 @@ import { CepCrawlNotFoundResponse } from 'src/responses/cep.crawl.not-found.resp
 import { CepCrawlResultsResponse } from 'src/responses/cep.crawl.results.response';
 import { CepCrawlResultsGetDTO } from 'src/dtos/cep.crawl.results.get.dto';
 import { AddressData } from 'src/interfaces/address.interface';
+import { CrawResultStatusEnum } from 'generated/prisma';
 
 @Injectable()
 export class CepCrawlResultsHandler {
@@ -37,7 +38,7 @@ export class CepCrawlResultsHandler {
     const filters = {
       cep_start,
       cep_end,
-      status: status ? (status as any) : undefined,
+      status: status ? (status as CrawResultStatusEnum) : undefined,
       q,
     };
 

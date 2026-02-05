@@ -6,7 +6,7 @@ import { AddressService } from '../services/address.service';
 import { CrawlService } from '../services/crawl.service';
 import { CepCacheService } from '../services/cep-cache.service';
 import { AddressData } from '../interfaces/address.interface';
-import { CrawResultStatusEnum } from 'generated/prisma';
+import { CrawResultStatusEnum, Prisma } from 'generated/prisma';
 
 interface CrawlPayload {
   crawl_id: string;
@@ -111,7 +111,7 @@ export class CrawlWorker implements OnModuleInit {
         crawlId: crawl_id,
         cep,
         status,
-        data: (data as any) ?? undefined,
+        data: (data as unknown as Prisma.InputJsonValue) ?? undefined,
         errorMessage: errorMessage ?? undefined,
       });
 
