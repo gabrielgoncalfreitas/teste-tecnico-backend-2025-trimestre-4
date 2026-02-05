@@ -2,6 +2,49 @@
 
 Teste técnico para a posição de Backend Dev. Edição do quarto trimestre de 2025.
 
+
+## Como Rodar o Projeto
+
+### Pré-requisitos
+
+- Docker e Docker Compose instalados.
+- Node.js 24+ (para rodar scripts locais se necessário, mas o projeto usa Docker).
+
+### Passos
+
+1. Clone o repositório.
+2. Copie o arquivo de exemplo de variáveis de ambiente:
+   ```bash
+   cp .env.example .env
+   ```
+3. Suba os containers com Docker Compose:
+   ```bash
+   docker-compose up --build
+   ```
+4. A API estará disponível em `http://localhost:3000`.
+5. A documentação Swagger estará em `http://localhost:3000/documentation`.
+
+
+### URLs
+
+- API: `http://localhost:3000`
+- Swagger da API: `http://localhost:3000/documentation`
+- MongoDB: `mongodb://admin:password@localhost:27017`
+- MongoDB Express: `http://localhost:8081`
+- ElasticMQ: `http://localhost:9324`
+- ElasticMQ Web UI: `http://localhost:9325`
+
+### Testes
+
+Para rodar os testes unitários (executados localmente, requer Node.js):
+
+```bash
+pnpm install
+pnpm test
+```
+
+---
+
 ## A proposta: Crawler assíncrono de CEPs + Fila + MongoDB
 
 A ideia é bem simples:
@@ -141,35 +184,3 @@ Este teste busca avaliar as seguintes competências:
 6. Domínio sobre a runtime `node.js`;
 7. Capacidade de organização de código e separação de responsabilidades;
 8. Capacidade de lidar com contêineres Docker e ambientes compostos.
-
----
-
-## Como Rodar o Projeto
-
-### Pré-requisitos
-
-- Docker e Docker Compose instalados.
-- Node.js 24+ (para rodar scripts locais se necessário, mas o projeto usa Docker).
-
-### Passos
-
-1. Clone o repositório.
-2. Copie o arquivo de exemplo de variáveis de ambiente:
-   ```bash
-   cp .env.example .env
-   ```
-3. Suba os containers com Docker Compose:
-   ```bash
-   docker-compose up --build
-   ```
-4. A API estará disponível em `http://localhost:3000`.
-5. A documentação Swagger estará em `http://localhost:3000/documentation`.
-
-### Testes
-
-Para rodar os testes unitários (executados localmente, requer Node.js):
-
-```bash
-pnpm install
-pnpm test
-```
