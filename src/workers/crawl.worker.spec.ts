@@ -136,9 +136,10 @@ describe('CrawlWorker', () => {
       addressService.getAddress.mockRejectedValue(new Error('API Timeout'));
       const promise = (worker as any).processMessage(mockMessage);
       jest.runAllTimers();
-      await promise;
+
+      await expect(promise).rejects.toThrow('API Timeout');
+
       expect(sqsService.deleteMessage).not.toHaveBeenCalled();
-      // Also expect a warning log now
       expect(worker['logger'].warn).toHaveBeenCalledWith(
         expect.stringContaining('Message will be retried'),
       );
@@ -158,7 +159,8 @@ describe('CrawlWorker', () => {
 
       const promise = (worker as any).processMessage(mockMessage);
       jest.runAllTimers();
-      await promise;
+
+      await expect(promise).rejects.toThrow('DB Error');
 
       expect(loggerSpy).toHaveBeenCalledWith(
         expect.stringContaining('Message will be retried'),
@@ -176,7 +178,9 @@ describe('CrawlWorker', () => {
 
       const promise = (worker as any).processMessage(mockMessage);
       jest.runAllTimers();
-      await promise;
+
+      // We expect it to throw since we now rethrow everything
+      await expect(promise).rejects.toMatch('String Error');
 
       expect(loggerSpy).toHaveBeenCalledWith(
         expect.stringContaining('Unknown error'),

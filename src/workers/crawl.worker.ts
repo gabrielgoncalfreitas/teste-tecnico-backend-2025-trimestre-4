@@ -178,14 +178,15 @@ export class CrawlWorker implements OnModuleInit {
       this.consecutiveErrors = 0; // Reset on success
     } catch (error: unknown) {
       if (error instanceof ThrottlingError) {
-        // Rethrow ThrottlingError to trigger adaptive delay in startPolling
         throw error;
       }
 
       const msg = error instanceof Error ? error.message : 'Unknown error';
       this.logger.warn(
-        `Failed to process crawl ${crawlId} for CEP ${cep}: ${msg}. Message will be retried.`,
+        `Failed to process crawl ${crawlId} for CEP ${cep}: ${msg}. Message will be retried by SQS.`,
       );
+      // Rethrow to increment consecutiveErrors in startPolling
+      throw error;
     }
   }
 }

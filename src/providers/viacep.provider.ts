@@ -61,25 +61,31 @@ export class ViaCepProvider implements AddressProvider {
 
         const isLastAttempt = attempt > this.maxRetries;
 
-        if (isThrottled && isLastAttempt) {
-          throw new ThrottlingError(
-            `ViaCEP throttling threshold reached for CEP ${cep}. Circuit breaker triggered.`,
+        if (isThrottled || isTimeout) {
+          if (isLastAttempt) {
+            if (isThrottled) {
+              throw new ThrottlingError(
+                `ViaCEP throttling threshold reached for CEP ${cep}. Circuit breaker triggered.`,
+              );
+            }
+            throw new Error(
+              `ViaCEP request timed out for CEP ${cep} after ${this.maxRetries} retries.`,
+            );
+          }
+
+          const delay = Math.pow(2, attempt) * 1000;
+          this.logger.warn(
+            `Retry ${attempt}/${this.maxRetries} for CEP ${cep} due to ${isTimeout ? 'timeout' : 'throttling'}. Waiting ${delay}ms...`,
           );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
         }
 
-        if (isLastAttempt || (!isTimeout && !isThrottled && status)) {
-          // If it's a real 404/400 or we exhausted retries, log and give up
-          this.logger.error(
-            `Failed to fetch CEP ${cep}${status ? ` (Status: ${status})` : ''}: ${message}`,
-          );
-          return null;
-        }
-
-        const delay = Math.pow(2, attempt) * 1000;
-        this.logger.warn(
-          `Retry ${attempt}/${this.maxRetries} for CEP ${cep} due to ${isTimeout ? 'timeout' : 'throttling'}. Waiting ${delay}ms...`,
+        // For non-transient errors (like 400, 404, or after exhaustion of other errors)
+        this.logger.error(
+          `Failed to fetch CEP ${cep}${status ? ` (Status: ${status})` : ''}: ${message}`,
         );
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        return null;
       }
     }
 
