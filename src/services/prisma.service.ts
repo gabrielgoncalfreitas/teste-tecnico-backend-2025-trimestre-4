@@ -12,7 +12,7 @@ export class PrismaService
     const isDocker = existsSync('/.dockerenv');
     const url = isDocker
       ? configService.get<string>('DOCKER_DATABASE_URL')
-      : configService.get<string>('DATABASE_URL');
+      : configService.get<string>('PRISMA_DATABASE_URL');
 
     super({
       datasources: {
