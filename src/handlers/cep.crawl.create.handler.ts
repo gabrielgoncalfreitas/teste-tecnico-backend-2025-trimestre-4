@@ -73,7 +73,7 @@ export class CepCrawlCreateHandler {
 
   private async enqueueMissingCeps(crawlId: string, missingCeps: string[]) {
     const cepsToEnqueue = missingCeps.map((cep) => ({
-      crawl_id: crawlId,
+      crawlId,
       cep,
     }));
     this.logger.log(

@@ -73,9 +73,9 @@ describe('CepCrawlCreateHandler', () => {
         total_ceps: 3,
       });
       expect(sqsService.sendMessageBatch).toHaveBeenCalledWith([
-        { crawl_id: 'crawl-123', cep: '01000000' },
-        { crawl_id: 'crawl-123', cep: '01000001' },
-        { crawl_id: 'crawl-123', cep: '01000002' },
+        { crawlId: 'crawl-123', cep: '01000000' },
+        { crawlId: 'crawl-123', cep: '01000001' },
+        { crawlId: 'crawl-123', cep: '01000002' },
       ]);
       expect(result).toBeInstanceOf(CepCrawlCreateResponse);
       expect((result as CepCrawlCreateResponse).data.id).toBe('crawl-123');
