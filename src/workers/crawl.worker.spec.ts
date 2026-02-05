@@ -69,7 +69,7 @@ describe('CrawlWorker', () => {
   describe('processMessages', () => {
     it('should process a message, fetch address, and delete message', async () => {
       const mockMessage: Message = {
-        Body: JSON.stringify({ crawl_id: 'c1', cep: '01001000' }),
+        Body: JSON.stringify({ crawlId: 'c1', cep: '01001000' }),
         ReceiptHandle: 'h1',
         MessageId: 'm1',
       };
@@ -97,7 +97,7 @@ describe('CrawlWorker', () => {
 
     it('should handle missing address and save error result', async () => {
       const mockMessage: Message = {
-        Body: JSON.stringify({ crawl_id: 'c1', cep: '99999999' }),
+        Body: JSON.stringify({ crawlId: 'c1', cep: '99999999' }),
         ReceiptHandle: 'h2',
         MessageId: 'm2',
       };
@@ -117,7 +117,7 @@ describe('CrawlWorker', () => {
 
     it('should handle transient error and throw (triggering retry logic)', async () => {
       const mockMessage: Message = {
-        Body: JSON.stringify({ crawl_id: 'c1', cep: '01001000' }),
+        Body: JSON.stringify({ crawlId: 'c1', cep: '01001000' }),
         ReceiptHandle: 'h3',
         MessageId: 'm3',
       };
@@ -134,7 +134,7 @@ describe('CrawlWorker', () => {
 
     it('should log warning when non-retryable error occurs (now treated as retryable by default)', async () => {
       const mockMessage: Message = {
-        Body: JSON.stringify({ crawl_id: 'c1', cep: '01001000' }),
+        Body: JSON.stringify({ crawlId: 'c1', cep: '01001000' }),
         ReceiptHandle: 'h5',
         MessageId: 'm5',
       };
@@ -156,7 +156,7 @@ describe('CrawlWorker', () => {
 
     it('should handle unknown error properly', async () => {
       const mockMessage: Message = {
-        Body: JSON.stringify({ crawl_id: 'c1', cep: '01001000' }),
+        Body: JSON.stringify({ crawlId: 'c1', cep: '01001000' }),
         ReceiptHandle: 'h6',
       };
       addressService.getAddress.mockRejectedValue('String Error'); // Not an Error object
@@ -184,7 +184,7 @@ describe('CrawlWorker', () => {
       process.env.ROLE = 'worker';
       process.argv = ['node', 'app']; // Clear args
       const mockMessage: Message = {
-        Body: JSON.stringify({ crawl_id: 'c1', cep: '01001000' }),
+        Body: JSON.stringify({ crawlId: 'c1', cep: '01001000' }),
       };
       sqsService.receiveMessages.mockResolvedValueOnce([mockMessage]);
       sqsService.receiveMessages.mockImplementation(() => {

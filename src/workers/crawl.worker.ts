@@ -9,7 +9,7 @@ import { AddressData } from '../interfaces/address.interface';
 import { CrawResultStatusEnum, Prisma } from 'generated/prisma';
 
 interface CrawlPayload {
-  crawl_id: string;
+  crawlId: string;
   cep: string;
 }
 
@@ -89,10 +89,10 @@ export class CrawlWorker implements OnModuleInit {
       return;
     }
 
-    const { crawl_id, cep } = body;
+    const { crawlId, cep } = body;
 
     try {
-      const data = await this.addressService.getAddress(cep, crawl_id);
+      const data = await this.addressService.getAddress(cep, crawlId);
 
       let status: CrawResultStatusEnum = CrawResultStatusEnum.SUCCESS;
       let errorMessage: string | undefined;
@@ -106,7 +106,7 @@ export class CrawlWorker implements OnModuleInit {
       }
 
       await this.crawlService.saveSingleResult({
-        crawlId: crawl_id,
+        crawlId: crawlId,
         cep,
         status,
         data: (data && !data.erro
@@ -119,7 +119,7 @@ export class CrawlWorker implements OnModuleInit {
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
       this.logger.warn(
-        `Failed to process crawl ${crawl_id} for CEP ${cep}: ${msg}. Message will be retried.`,
+        `Failed to process crawl ${crawlId} for CEP ${cep}: ${msg}. Message will be retried.`,
       );
     }
   }
