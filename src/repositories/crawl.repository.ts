@@ -140,4 +140,22 @@ export class CrawlRepository {
       where,
     });
   }
+
+  async findUnfinished() {
+    return this.prisma.crawl.findMany({
+      where: {
+        status: {
+          in: [CrawlStatusEnum.PENDING, CrawlStatusEnum.RUNNING],
+        },
+      },
+    });
+  }
+
+  async getExistingCeps(crawlId: string) {
+    const results = await this.prisma.crawl_result.findMany({
+      where: { crawl_id: crawlId },
+      select: { cep: true },
+    });
+    return results.map((r) => r.cep);
+  }
 }

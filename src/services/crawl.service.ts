@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import {
   CrawlStatusEnum,
   CrawResultStatusEnum,
@@ -6,13 +6,62 @@ import {
 } from 'generated/prisma';
 import { CrawlRepository } from '../repositories/crawl.repository';
 import { CepRepository } from '../repositories/cep.repository';
+import { SqsService } from './sqs.service';
 
 @Injectable()
-export class CrawlService {
+export class CrawlService implements OnModuleInit {
+  private readonly logger = new Logger(CrawlService.name);
+
   constructor(
     private readonly repository: CrawlRepository,
     private readonly cepRepository: CepRepository,
+    private readonly sqsService: SqsService,
   ) {}
+
+  async onModuleInit() {
+    await this.recoverUnfinishedCrawls();
+  }
+
+  async recoverUnfinishedCrawls() {
+    const unfinishedCrawls = await this.repository.findUnfinished();
+    if (unfinishedCrawls.length === 0) return;
+
+    this.logger.log(
+      `Found ${unfinishedCrawls.length} unfinished crawls. Starting recovery...`,
+    );
+
+    for (const crawl of unfinishedCrawls) {
+      this.logger.log(`Recovering crawl ${crawl.id}...`);
+      const existingCeps = new Set(
+        await this.repository.getExistingCeps(crawl.id),
+      );
+
+      const start = parseInt(crawl.cep_start, 10);
+      const end = parseInt(crawl.cep_end, 10);
+      const missingCeps: string[] = [];
+
+      for (let i = start; i <= end; i++) {
+        const cep = i.toString().padStart(8, '0');
+        if (!existingCeps.has(cep)) {
+          missingCeps.push(cep);
+        }
+      }
+
+      if (missingCeps.length > 0) {
+        this.logger.log(
+          `Re-queuing ${missingCeps.length} CEPs for crawl ${crawl.id}`,
+        );
+        const messages = missingCeps.map((cep) => ({
+          crawlId: crawl.id,
+          cep,
+          type: 'CRAWL_CEP',
+        }));
+        await this.sqsService.sendMessageBatch(messages);
+      } else {
+        this.logger.log(`No missing CEPs for crawl ${crawl.id}.`);
+      }
+    }
+  }
 
   async createCrawl(data: {
     cep_start: string;
