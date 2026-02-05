@@ -24,7 +24,6 @@ export class AddressService {
       return address;
     }
 
-    this.logger.error(`${logPrefix}Address provider failed for CEP ${cep}`);
     return null;
   }
 }

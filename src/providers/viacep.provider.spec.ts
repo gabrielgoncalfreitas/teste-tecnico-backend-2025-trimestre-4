@@ -100,4 +100,26 @@ describe('ViaCepProvider', () => {
     expect(result).toBeNull();
     expect(mockedAxios.get).toHaveBeenCalledTimes(1);
   });
+
+  it('should retry on transient network errors (e.g., ECONNRESET)', async () => {
+    const errorReset = {
+      code: 'ECONNRESET',
+      message: 'read ECONNRESET',
+    };
+    mockedAxios.get.mockRejectedValue(errorReset);
+    mockedAxios.isAxiosError.mockReturnValue(true);
+
+    jest.useFakeTimers();
+    const promise = provider.getAddress('01001000');
+
+    for (let i = 0; i < 4; i++) {
+      await Promise.resolve();
+      await Promise.resolve();
+      jest.advanceTimersByTime(10000);
+    }
+
+    await expect(promise).rejects.toThrow('ViaCEP request failed');
+    expect(mockedAxios.get).toHaveBeenCalledTimes(4);
+    jest.useRealTimers();
+  });
 });

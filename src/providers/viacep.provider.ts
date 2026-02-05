@@ -50,41 +50,56 @@ export class ViaCepProvider implements AddressProvider {
         let message = 'Unknown error';
 
         if (axios.isAxiosError(error)) {
+          const errorCode = error.code;
+          const transientCodes = [
+            'ECONNABORTED',
+            'ECONNRESET',
+            'ENOTFOUND',
+            'ETIMEDOUT',
+            'EADDRINUSE',
+            'ECONNREFUSED',
+          ];
+
           isTimeout =
-            error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+            errorCode === 'ECONNABORTED' || error.message?.includes('timeout');
           status = error.response?.status;
           isThrottled = status === 429;
-          message = error.message;
+          const isNetworkError =
+            errorCode && transientCodes.includes(errorCode);
+
+          const isTransient = isThrottled || isTimeout || isNetworkError;
+          message = error.message || errorCode || 'Unknown Axios Error';
+
+          if (isTransient) {
+            const isLastAttempt = attempt > this.maxRetries;
+            if (isLastAttempt) {
+              if (isThrottled) {
+                throw new ThrottlingError(
+                  `ViaCEP throttling threshold reached for CEP ${cep}. Circuit breaker triggered.`,
+                );
+              }
+              throw new Error(
+                `ViaCEP request failed for CEP ${cep} after ${this.maxRetries} retries: ${message}`,
+              );
+            }
+
+            const delay = Math.pow(2, attempt) * 1000;
+            this.logger.warn(
+              `Retry ${attempt}/${this.maxRetries} for CEP ${cep} due to ${isThrottled ? 'throttling' : 'network/timeout'}. Waiting ${delay}ms...`,
+            );
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            continue;
+          }
         } else if (error instanceof Error) {
           message = error.message;
         }
 
-        const isLastAttempt = attempt > this.maxRetries;
-
-        if (isThrottled || isTimeout) {
-          if (isLastAttempt) {
-            if (isThrottled) {
-              throw new ThrottlingError(
-                `ViaCEP throttling threshold reached for CEP ${cep}. Circuit breaker triggered.`,
-              );
-            }
-            throw new Error(
-              `ViaCEP request timed out for CEP ${cep} after ${this.maxRetries} retries.`,
-            );
-          }
-
-          const delay = Math.pow(2, attempt) * 1000;
-          this.logger.warn(
-            `Retry ${attempt}/${this.maxRetries} for CEP ${cep} due to ${isTimeout ? 'timeout' : 'throttling'}. Waiting ${delay}ms...`,
+        // For non-transient errors (like 400, 404)
+        if (status !== 404) {
+          this.logger.error(
+            `Non-retryable error fetching CEP ${cep}${status ? ` (Status: ${status})` : ''}: ${message}`,
           );
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          continue;
         }
-
-        // For non-transient errors (like 400, 404, or after exhaustion of other errors)
-        this.logger.error(
-          `Failed to fetch CEP ${cep}${status ? ` (Status: ${status})` : ''}: ${message}`,
-        );
         return null;
       }
     }
