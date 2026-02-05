@@ -33,7 +33,7 @@ services:
       retries: 3
       start_period: 10s
     deploy:
-      replicas: 1
+      replicas: ${WORKER_REPLICAS}
 
   mongo:
     image: mongo:6.0
