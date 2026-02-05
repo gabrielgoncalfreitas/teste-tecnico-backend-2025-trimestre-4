@@ -143,7 +143,7 @@ A ideia é bem simples:
 
 ---
 
-## Fila assíncronae
+## Fila assíncrona
 
 - [ ] sugerimos o uso do **ElasticMQ** em Docker
       ([https://github.com/softwaremill/elasticmq](https://github.com/softwaremill/elasticmq)), por ser compatível com a API do Amazon SQS
