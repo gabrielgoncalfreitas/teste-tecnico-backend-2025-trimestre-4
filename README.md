@@ -1,211 +1,370 @@
-# teste-tecnico-backend-2025-trimestre-4
+# Crawler Assíncrono de CEPs
 
-Teste técnico para a posição de Backend Dev. Edição do quarto trimestre de 2025.
+API REST para processamento assíncrono de ranges de CEPs utilizando filas e MongoDB.
 
-## Como Rodar o Projeto
+## ✅ Status da Implementação
 
-### Pré-requisitos
+| Requisito                                               | Status |
+| ------------------------------------------------------- | ------ |
+| POST /cep/crawl (solicitar range)                       | ✅     |
+| GET /cep/crawl/:crawl_id (status)                       | ✅     |
+| GET /cep/crawl/:crawl_id/results (resultados paginados) | ✅     |
+| Processamento assíncrono via fila                       | ✅     |
+| Controle de taxa (rate limiting)                        | ✅     |
+| Retry com backoff exponencial                           | ✅     |
+| Circuit Breaker para API externa                        | ✅     |
+| Cache de CEPs já consultados                            | ✅     |
+| Swagger/OpenAPI                                         | ✅     |
+| Testes unitários (122 testes)                           | ✅     |
+| Docker Compose completo                                 | ✅     |
 
-- Docker e Docker Compose instalados.
-- Node.js 24+ (para rodar scripts locais se necessário, mas o projeto usa Docker).
+---
 
-### Passos
+## 🚀 Como Rodar
 
-1. Clone o repositório.
-2. Copie o arquivo de exemplo de variáveis de ambiente:
-   ```bash
-   cp .env.example .env
-   ```
-3. Suba os containers com Docker Compose:
-   ```bash
-   docker-compose up --build
-   ```
-4. A API estará disponível em `http://localhost:3000`.
-5. A documentação Swagger estará em `http://localhost:3000/documentation`.
+### Com Docker (recomendado)
+
+```bash
+# 1. Clone e configure
+cp .env.example .env
+
+# 2. Suba tudo
+docker-compose up --build
+```
+
+### Localmente (desenvolvimento)
+
+```bash
+# 1. Instale dependências
+pnpm install
+
+# 2. Suba apenas infra (MongoDB + ElasticMQ)
+docker-compose up mongo elasticmq -d
+
+# 3. Gere o Prisma Client
+pnpm prisma generate && pnpm prisma db push
+
+# 4. Rode API e Worker separadamente
+pnpm start:api     # Terminal 1
+pnpm start:worker  # Terminal 2
+```
 
 ### URLs
 
-- API: `http://localhost:3000`
-- Swagger da API: `http://localhost:3000/documentation`
-- MongoDB: `mongodb://admin:password@localhost:27017`
-- MongoDB Express: `http://localhost:8081`
-- ElasticMQ: `http://localhost:9324`
-- ElasticMQ Web UI: `http://localhost:9325`
+| Serviço         | URL                                 |
+| --------------- | ----------------------------------- |
+| API             | http://localhost:3000               |
+| Swagger         | http://localhost:3000/documentation |
+| MongoDB Express | http://localhost:8081               |
+| ElasticMQ UI    | http://localhost:9325               |
 
-### Testes
+---
 
-Para rodar os testes unitários (executados localmente, requer Node.js):
+## 📡 Endpoints
+
+### POST /cep/crawl
+
+Solicita processamento de um range de CEPs.
 
 ```bash
-pnpm install
-pnpm test
+curl -X POST http://localhost:3000/cep/crawl \
+  -H "Content-Type: application/json" \
+  -d '{"cep_start": "01001000", "cep_end": "01001010"}'
 ```
 
----
-
-## Variáveis de Ambiente
-
-O projeto utiliza diversas variáveis de ambiente para configuração. Abaixo estão detalhadas as principais:
-
-| Variável               | Descrição                                                                                              | Valor Padrão               |
-| :--------------------- | :----------------------------------------------------------------------------------------------------- | :------------------------- |
-| `API_PORT`             | Porta onde a API NestJS será exposta.                                                                  | `3000`                     |
-| `PRISMA_DATABASE_URL`  | URL de conexão do Prisma com o MongoDB (uso local).                                                    | -                          |
-| `DOCKER_DATABASE_URL`  | URL de conexão do MongoDB dentro da rede Docker.                                                       | -                          |
-| `SQS_ENDPOINT`         | Endpoint do ElasticMQ (SQS local) para uso fora do Docker.                                             | `http://localhost:9324`    |
-| `DOCKER_SQS_ENDPOINT`  | Endpoint do ElasticMQ dentro da rede Docker.                                                           | `http://elasticmq:9324`    |
-| `SQS_QUEUE_NAME`       | Nome da fila SQS para processamento de CEPs.                                                           | `cep-crawl-queue`          |
-| **Escalabilidade**     |                                                                                                        |                            |
-| `WORKER_REPLICAS`      | Número de instâncias do worker no Docker Compose (Escala Horizontal).                                  | `1`                        |
-| `WORKER_CONCURRENCY`   | Número de mensagens processadas em paralelo por cada instância do worker (Escala Vertical).            | `3`                        |
-| `WORKER_RATE_LIMIT_MS` | Atraso (delay) entre o processamento de lotes de mensagens para respeitar o rate limit da API externa. | `400`                      |
-| **Providers Externos** |                                                                                                        |                            |
-| `VIACEP_URL`           | URL base da API do ViaCEP.                                                                             | `https://viacep.com.br/ws` |
-| `VIACEP_TIMEOUT_MS`    | Timeout máximo para requisições ao ViaCEP (em ms).                                                     | `5000`                     |
-| **Infraestrutura**     |                                                                                                        |                            |
-| `MONGO_PORT`           | Porta do banco de dados MongoDB.                                                                       | `27017`                    |
-| `MONGO_EXPRESS_PORT`   | Porta da interface visual do Mongo Express.                                                            | `8081`                     |
-| `ELASTICMQ_PORT`       | Porta da API SQS do ElasticMQ.                                                                         | `9324`                     |
-| `ELASTICMQ_UI_PORT`    | Porta da interface visual do ElasticMQ.                                                                | `9325`                     |
-
----
-
-## A proposta: Crawler assíncrono de CEPs + Fila + MongoDB
-
-A ideia é bem simples:
-
-- [ ] uma API que permita solicitar o processamento de um **range de CEPs**
-- [ ] cada CEP do range deve ser processado de forma **assíncrona**
-- [ ] os dados devem ser obtidos a partir da API pública do **ViaCEP**
-- [ ] os resultados e o progresso devem ser persistidos em um banco **MongoDB**
-
----
-
-## API
-
-### Solicitação de crawl
-
-- [ ] uma rota `POST /cep/crawl` que recebe um range de CEPs no seguinte formato:
+**Resposta (202 Accepted):**
 
 ```json
 {
-  "cep_start": "01000000",
-  "cep_end": "01001000"
+  "crawl_id": "019c2c2f-e62f-7503-9a1d-dc09da92220f",
+  "status": "PENDING",
+  "total_ceps": 11
 }
 ```
 
-- [ ] validar:
-  - [ ] formato dos CEPs
-  - [ ] `cep_start` menor ou igual a `cep_end`
-  - [ ] tamanho máximo do range (critério livre)
+### GET /cep/crawl/:crawl_id
 
-- [ ] criar um identificador único da requisição (`crawl_id`)
-- [ ] inserir **um item na fila para cada CEP do range**
-- [ ] retornar:
-  - [ ] código de status `202 Accepted`
-  - [ ] o `crawl_id` gerado
+Consulta status do processamento.
 
----
+```bash
+curl http://localhost:3000/cep/crawl/019c2c2f-e62f-7503-9a1d-dc09da92220f
+```
 
-### Consulta de status
+**Resposta:**
 
-- [ ] uma rota `GET /cep/crawl/:crawl_id` que retorna o status do processamento
-- [ ] o status deve conter, no mínimo:
-  - [ ] total de CEPs
-  - [ ] quantidade processada
-  - [ ] quantidade de sucessos
-  - [ ] quantidade de erros
-  - [ ] status geral da requisição (`pending`, `running`, `finished`, `failed`)
+```json
+{
+  "crawl_id": "019c2c2f-e62f-7503-9a1d-dc09da92220f",
+  "status": "FINISHED",
+  "total_ceps": 11,
+  "processed_ceps": 11,
+  "success_ceps": 8,
+  "failed_ceps": 3
+}
+```
 
-- [ ] retornar:
-  - [ ] `404` caso o `crawl_id` não exista
-  - [ ] `200` caso exista
+### GET /cep/crawl/:crawl_id/results
 
----
+Consulta resultados com paginação e filtros.
 
-### (Opcional) Consulta de resultados
+```bash
+# Paginação
+curl "http://localhost:3000/cep/crawl/:id/results?page=1&limit=20"
 
-- [ ] uma rota `GET /cep/crawl/:crawl_id/results`
-- [ ] retornar os resultados já processados
-- [ ] paginação simples é desejável
+# Filtros
+curl "http://localhost:3000/cep/crawl/:id/results?status=SUCCESS&cep_start=01001000"
 
----
-
-## Processamento assíncrono
-
-- [ ] o processamento dos CEPs deve ocorrer fora do ciclo da requisição HTTP
-- [ ] cada CEP deve ser consumido individualmente a partir de uma fila
-- [ ] para cada CEP:
-  - [ ] consultar a API do ViaCEP
-  - [ ] em caso de sucesso, persistir o endereço no MongoDB
-  - [ ] em caso de CEP inexistente, registrar o erro associado ao `crawl_id`
-  - [ ] em caso de falha temporária, permitir retry
-
----
-
-## Fila assíncrona
-
-- [ ] sugerimos o uso do **ElasticMQ** em Docker
-      ([https://github.com/softwaremill/elasticmq](https://github.com/softwaremill/elasticmq)), por ser compatível com a API do Amazon SQS
-- [ ] o candidato pode utilizar outra solução de fila, desde que justifique a escolha
-- [ ] o sistema deve garantir que o consumo da fila **não exceda limites da API externa**
-
-```plain
-A API do ViaCEP pode aplicar limitação de requisições.
-O sistema deve ser capaz de controlar a taxa de processamento da fila,
-mesmo quando o usuário solicita ranges grandes de CEPs.
-
-O não controle da fila pode resultar em falhas, retries excessivos ou bloqueio
-da API externa.
+# Busca por texto (logradouro, bairro, cidade)
+curl "http://localhost:3000/cep/crawl/:id/results?q=paulista"
 ```
 
 ---
 
-## Persistência
+## 🏗️ Arquitetura
 
-- [ ] utilizar **MongoDB** para persistência dos dados
-- [ ] os dados devem estar associados à requisição que originou o processamento
-- [ ] o modelo de dados é livre, mas deve permitir:
-  - [ ] acompanhar progresso
-  - [ ] identificar erros
-  - [ ] consultar resultados por `crawl_id`
+```
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│   Cliente    │───▶│     API      │───▶│   MongoDB    │
+└──────────────┘    └──────────────┘    └──────────────┘
+                           │
+                           ▼
+                    ┌──────────────┐
+                    │  ElasticMQ   │  (SQS-compatible)
+                    │    (Fila)    │
+                    └──────────────┘
+                           │
+                           ▼
+                    ┌──────────────┐    ┌──────────────┐
+                    │   Worker     │───▶│   ViaCEP     │
+                    │  (Crawler)   │    │    (API)     │
+                    └──────────────┘    └──────────────┘
+```
+
+### Estrutura de Pastas
+
+```
+src/
+├── controllers/     # Endpoints HTTP (thin layer)
+├── handlers/        # Lógica de negócio dos endpoints
+├── services/        # Serviços de domínio
+├── providers/       # Integrações externas (ViaCEP)
+├── repositories/    # Acesso a dados (Prisma)
+├── workers/         # Consumidor da fila SQS
+├── dtos/            # Validação de entrada
+├── responses/       # Schemas de resposta
+├── errors/          # Erros customizados
+└── filters/         # Exception handlers
+```
 
 ---
 
-## Infraestrutura
+## 🎯 Decisões Técnicas
 
-Para infra, vamos usar o seguinte conjunto:
+### 1. Controle de Taxa (Rate Limiting)
 
-- [ ] um arquivo `Dockerfile` para a aplicação
-- [ ] um arquivo `docker-compose.yml` contendo, no mínimo:
-  - [ ] aplicação HTTP
-  - [ ] worker de processamento assíncrono
-  - [ ] MongoDB
-  - [ ] serviço de fila (ElasticMQ ou equivalente)
+O sistema implementa múltiplas camadas de proteção contra sobrecarga da API externa:
+
+| Mecanismo    | Configuração                | Descrição                               |
+| ------------ | --------------------------- | --------------------------------------- |
+| Rate Limit   | `WORKER_RATE_LIMIT_MS=2000` | Delay entre batches de processamento    |
+| Concorrência | `WORKER_CONCURRENCY=1`      | CEPs processados em paralelo por worker |
+| Timeout      | `VIACEP_TIMEOUT_MS=10000`   | Timeout por requisição                  |
+| Retries      | 3 tentativas                | Backoff exponencial: 2s → 4s → 8s       |
+
+### 2. Circuit Breaker
+
+Quando a API externa retorna erros consecutivos, o worker pausa automaticamente:
+
+```
+Erro 1 → espera 10s
+Erro 2 → espera 20s
+Erro 3 → espera 40s
+Erro 4+ → espera 60s (máximo)
+```
+
+Implementado em `CrawlWorker.startPolling()` com `ThrottlingError` para detectar 429.
+
+### 3. Cache de CEPs
+
+CEPs já consultados são armazenados na collection `ceps`, evitando requisições repetidas:
+
+- Se o CEP existe no cache → usa direto, não chama ViaCEP
+- Reduz drasticamente requisições para ranges sobrepostos
+
+### 4. Recovery de Crawls Incompletos
+
+Se o worker reiniciar, ele detecta crawls não finalizados e readiciona apenas os CEPs faltantes na fila:
+
+- Campo `last_recovery_at` evita duplicação de recovery em 10 minutos
+- Garante que nenhum CEP seja perdido mesmo com falhas
+
+### 5. Separação API/Worker
+
+O mesmo código pode rodar como API ou Worker via flag:
+
+```bash
+node dist/main --role=api     # Apenas HTTP
+node dist/main --role=worker  # Apenas processamento de fila
+```
+
+Permite escalar API e Workers independentemente.
 
 ---
 
-## Restrições
+## ⚙️ Variáveis de Ambiente
 
-A única limitação obrigatória é o uso da runtime **Node.js**.
-
-Você tem total liberdade para escolher bibliotecas auxiliares, ORMs, drivers de fila
-e organização do projeto.
-
-Acaso você esteja utilizando este projeto como meio de estudo, recomendamos o uso
-da biblioteca padrão `http` do Node.js para lidar com requisições web.
+| Variável               | Descrição               | Padrão                     |
+| ---------------------- | ----------------------- | -------------------------- |
+| `API_PORT`             | Porta da API            | `3000`                     |
+| `WORKER_REPLICAS`      | Instâncias do worker    | `1`                        |
+| `WORKER_CONCURRENCY`   | Parallelismo por worker | `1`                        |
+| `WORKER_RATE_LIMIT_MS` | Delay entre batches     | `2000`                     |
+| `VIACEP_TIMEOUT_MS`    | Timeout ViaCEP          | `10000`                    |
+| `VIACEP_URL`           | URL base ViaCEP         | `https://viacep.com.br/ws` |
 
 ---
 
-## O que estamos avaliando
+## 🧪 Testes
 
-Este teste busca avaliar as seguintes competências:
+```bash
+# Rodar todos os testes
+pnpm test
 
-1. Integração com APIs externas;
-2. Uso correto de filas assíncronas;
-3. Controle de concorrência e taxa de processamento;
-4. Modelagem e uso de banco de dados MongoDB;
-5. Domínio sobre a linguagem JavaScript;
-6. Domínio sobre a runtime `node.js`;
-7. Capacidade de organização de código e separação de responsabilidades;
-8. Capacidade de lidar com contêineres Docker e ambientes compostos.
+# Com coverage
+pnpm test:cov
+
+# Watch mode
+pnpm test:watch
+```
+
+**Resultado:** 122 testes passando, cobrindo:
+
+- Controllers, Handlers, Services
+- Repositories, Providers
+- Workers, DTOs, Validators
+- Error handling e edge cases
+
+---
+
+## 🔧 Stack Tecnológica
+
+| Tecnologia     | Uso                     |
+| -------------- | ----------------------- |
+| **NestJS**     | Framework principal     |
+| **Prisma**     | ORM para MongoDB        |
+| **MongoDB**    | Banco de dados          |
+| **ElasticMQ**  | Fila compatível com SQS |
+| **AWS SDK v3** | Cliente SQS             |
+| **Axios**      | HTTP client             |
+| **Swagger**    | Documentação da API     |
+| **Jest**       | Testes unitários        |
+| **Docker**     | Containerização         |
+
+---
+
+## 📁 Modelo de Dados
+
+### Collection: `crawls`
+
+```typescript
+{
+  id: string,              // UUID v7
+  cep_start: string,
+  cep_end: string,
+  status: "PENDING" | "RUNNING" | "FINISHED" | "FAILED",
+  total_ceps: number,
+  processed_ceps: number,
+  success_ceps: number,
+  failed_ceps: number,
+  last_recovery_at: Date?, // Controle de recovery
+  created_at: Date,
+  updated_at: Date
+}
+```
+
+### Collection: `crawl_results`
+
+```typescript
+{
+  id: string,
+  crawl_id: string,
+  cep: string,
+  status: "SUCCESS" | "ERROR",
+  data: JSON?,           // Dados do endereço
+  error_message: string?,
+  created_at: Date
+}
+```
+
+### Collection: `ceps` (cache)
+
+```typescript
+{
+  cep: string,    // PK
+  found: boolean,
+  logradouro: string?,
+  bairro: string?,
+  localidade: string?,
+  uf: string?,
+  // ... demais campos
+}
+```
+
+---
+
+## 📋 Proposta Original
+
+<details>
+<summary>Clique para expandir os requisitos originais</summary>
+
+### A proposta: Crawler assíncrono de CEPs + Fila + MongoDB
+
+A ideia é bem simples:
+
+- [x] uma API que permita solicitar o processamento de um **range de CEPs**
+- [x] cada CEP do range deve ser processado de forma **assíncrona**
+- [x] os dados devem ser obtidos a partir da API pública do **ViaCEP**
+- [x] os resultados e o progresso devem ser persistidos em um banco **MongoDB**
+
+### API
+
+- [x] rota `POST /cep/crawl` que recebe um range de CEPs
+- [x] validação de formato, ordem e tamanho máximo do range
+- [x] criar identificador único (`crawl_id`)
+- [x] inserir um item na fila para cada CEP
+- [x] retornar `202 Accepted` com o `crawl_id`
+
+- [x] rota `GET /cep/crawl/:crawl_id` com status do processamento
+- [x] retornar `404` se não existir, `200` se existir
+
+- [x] rota `GET /cep/crawl/:crawl_id/results` com paginação
+
+### Processamento assíncrono
+
+- [x] processamento fora do ciclo HTTP
+- [x] consumo individual da fila
+- [x] persistência no MongoDB
+- [x] suporte a retry em falhas temporárias
+
+### Fila assíncrona
+
+- [x] uso do ElasticMQ (compatível com SQS)
+- [x] controle de taxa para não exceder limites da API externa
+
+### Persistência
+
+- [x] MongoDB com dados associados ao `crawl_id`
+- [x] modelo permite acompanhar progresso e identificar erros
+
+### Infraestrutura
+
+- [x] Dockerfile para a aplicação
+- [x] docker-compose.yml com API, Worker, MongoDB e ElasticMQ
+
+</details>
+
+---
+
+## 👨‍💻 Autor
+
+Desenvolvido como teste técnico para posição de Backend Developer.
