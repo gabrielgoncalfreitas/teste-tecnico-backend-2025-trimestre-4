@@ -45,10 +45,11 @@ describe('AddressService', () => {
       expect(result).toBeNull();
     });
 
-    it('should catch and log provider errors and return null', async () => {
+    it('should propagate provider errors', async () => {
       viaCep.getAddress.mockRejectedValue(new Error('Network Error'));
-      const result = await service.getAddress('01001000', 'crawl123');
-      expect(result).toBeNull();
+      await expect(service.getAddress('01001000', 'crawl123')).rejects.toThrow(
+        'Network Error',
+      );
       expect(viaCep.getAddress).toHaveBeenCalled();
     });
   });

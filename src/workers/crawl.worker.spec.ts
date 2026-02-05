@@ -126,9 +126,13 @@ describe('CrawlWorker', () => {
       jest.runAllTimers();
       await promise;
       expect(sqsService.deleteMessage).not.toHaveBeenCalled();
+      // Also expect a warning log now
+      expect(worker['logger'].warn).toHaveBeenCalledWith(
+        expect.stringContaining('Message will be retried'),
+      );
     });
 
-    it('should log error when non-retryable error occurs', async () => {
+    it('should log warning when non-retryable error occurs (now treated as retryable by default)', async () => {
       const mockMessage: Message = {
         Body: JSON.stringify({ crawl_id: 'c1', cep: '01001000' }),
         ReceiptHandle: 'h5',
@@ -138,19 +142,19 @@ describe('CrawlWorker', () => {
         logradouro: 'Sé',
       } as AddressData);
       crawlService.saveSingleResult.mockRejectedValue(new Error('DB Error'));
-      const loggerSpy = jest.spyOn(worker['logger'], 'error');
+      const loggerSpy = jest.spyOn(worker['logger'], 'warn');
 
       const promise = (worker as any).processMessage(mockMessage);
       jest.runAllTimers();
       await promise;
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        'Failed to process message m5',
-        'DB Error',
+        expect.stringContaining('Message will be retried'),
       );
+      expect(sqsService.deleteMessage).not.toHaveBeenCalled();
     });
 
-    it('should handle unknown error in inner try/catch', async () => {
+    it('should handle unknown error properly', async () => {
       const mockMessage: Message = {
         Body: JSON.stringify({ crawl_id: 'c1', cep: '01001000' }),
         ReceiptHandle: 'h6',
@@ -163,7 +167,7 @@ describe('CrawlWorker', () => {
       await promise;
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Transient error'),
+        expect.stringContaining('Unknown error'),
       );
     });
   });

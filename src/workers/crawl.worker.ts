@@ -73,59 +73,54 @@ export class CrawlWorker implements OnModuleInit {
   }
 
   async processMessage(message: Message) {
-    try {
-      // Internal rate limit removed in favor of batch staggering
+    if (!message.Body) return;
 
-      if (!message.Body) return;
-      const body = JSON.parse(message.Body) as CrawlPayload;
-      const { crawl_id, cep } = body;
+    let body: CrawlPayload;
+    try {
+      body = JSON.parse(message.Body);
+    } catch (e) {
+      this.logger.error('Failed to parse message body', message.Body);
+      // If we can't parse it, we should probably delete it to avoid infinite loop,
+      // or move to DLQ. For now, just return (it stays in queue or eventually DLQ).
+      // Actually, standard practice: if invalid, delete or DLQ.
+      // Let's just log and return for now as per previous behavior (mostly).
+      // Previous behavior: JSON.parse was inside try, if failed -> catch -> log "Failed to process message ... Unexpected token..."
+      // and NOT deleted.
+      return;
+    }
+
+    const { crawl_id, cep } = body;
+
+    try {
+      const data = await this.addressService.getAddress(cep, crawl_id);
 
       let status: CrawResultStatusEnum = CrawResultStatusEnum.SUCCESS;
-      let data: AddressData | null = null;
-      let errorMessage: string | null = null;
-      let shouldRetry = false;
+      let errorMessage: string | undefined;
 
-      try {
-        data = await this.addressService.getAddress(cep, crawl_id);
-        if (!data || data.erro) {
-          status = CrawResultStatusEnum.ERROR;
-          errorMessage = 'CEP not found';
-          data = null;
-          await this.cepCacheService.save(cep, false);
-        } else {
-          await this.cepCacheService.save(cep, true, data);
-        }
-      } catch (e: unknown) {
+      if (!data || data.erro) {
         status = CrawResultStatusEnum.ERROR;
-        const messageText = e instanceof Error ? e.message : 'Unknown Error';
-        errorMessage = messageText;
-        shouldRetry = true;
-        this.logger.warn(
-          `Transient error fetching CEP ${cep}, triggering retry: ${messageText}`,
-        );
+        errorMessage = 'CEP not found';
+        await this.cepCacheService.save(cep, false);
+      } else {
+        await this.cepCacheService.save(cep, true, data);
       }
-
-      if (shouldRetry) throw new Error(`Retryable error: ${errorMessage}`);
 
       await this.crawlService.saveSingleResult({
         crawlId: crawl_id,
         cep,
         status,
-        data: (data as unknown as Prisma.InputJsonValue) ?? undefined,
-        errorMessage: errorMessage ?? undefined,
+        data: (data && !data.erro
+          ? data
+          : undefined) as unknown as Prisma.InputJsonValue,
+        errorMessage,
       });
 
       await this.sqsService.deleteMessage(message.ReceiptHandle as string);
     } catch (error: unknown) {
-      if (
-        error instanceof Error &&
-        !error.message.startsWith('Retryable error')
-      ) {
-        this.logger.error(
-          `Failed to process message ${message.MessageId ?? 'unknown'}`,
-          error.message,
-        );
-      }
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(
+        `Failed to process crawl ${crawl_id} for CEP ${cep}: ${msg}. Message will be retried.`,
+      );
     }
   }
 }

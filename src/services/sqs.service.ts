@@ -59,32 +59,19 @@ export class SqsService implements OnModuleInit {
   }
 
   async createQueueIfNotExists(queueName: string) {
-    try {
-      const command = new CreateQueueCommand({
-        QueueName: queueName,
-      });
-      await this.sqsClient.send(command);
-      this.logger.log(`Queue ${queueName} ensured.`);
-    } catch (error: unknown) {
-      this.logger.error(
-        `Error creating queue: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    const command = new CreateQueueCommand({
+      QueueName: queueName,
+    });
+    await this.sqsClient.send(command);
+    this.logger.log(`Queue ${queueName} ensured.`);
   }
 
   async sendMessage(body: any) {
-    try {
-      const command = new SendMessageCommand({
-        QueueUrl: this.queueUrl,
-        MessageBody: JSON.stringify(body),
-      });
-      await this.sqsClient.send(command);
-    } catch (error: unknown) {
-      this.logger.error(
-        `Error sending message to SQS: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-      throw error;
-    }
+    const command = new SendMessageCommand({
+      QueueUrl: this.queueUrl,
+      MessageBody: JSON.stringify(body),
+    });
+    await this.sqsClient.send(command);
   }
 
   async sendMessageBatch(entries: any[]) {
@@ -95,49 +82,30 @@ export class SqsService implements OnModuleInit {
         MessageBody: JSON.stringify(entry),
       }));
 
-      try {
-        await this.sqsClient.send(
-          new SendMessageBatchCommand({
-            QueueUrl: this.queueUrl,
-            Entries: batch,
-          }),
-        );
-      } catch (error: unknown) {
-        this.logger.error(
-          `Error sending batch to SQS: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        );
-      }
+      await this.sqsClient.send(
+        new SendMessageBatchCommand({
+          QueueUrl: this.queueUrl,
+          Entries: batch,
+        }),
+      );
     }
   }
 
   async receiveMessages(maxNumberOfMessages = 10, waitTimeSeconds = 20) {
-    try {
-      const command = new ReceiveMessageCommand({
-        QueueUrl: this.queueUrl,
-        MaxNumberOfMessages: maxNumberOfMessages,
-        WaitTimeSeconds: waitTimeSeconds,
-      });
-      const response = await this.sqsClient.send(command);
-      return response.Messages || [];
-    } catch (error: unknown) {
-      this.logger.error(
-        `Error receiving messages from SQS: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-      return [];
-    }
+    const command = new ReceiveMessageCommand({
+      QueueUrl: this.queueUrl,
+      MaxNumberOfMessages: maxNumberOfMessages,
+      WaitTimeSeconds: waitTimeSeconds,
+    });
+    const response = await this.sqsClient.send(command);
+    return response.Messages || [];
   }
 
   async deleteMessage(receiptHandle: string) {
-    try {
-      const command = new DeleteMessageCommand({
-        QueueUrl: this.queueUrl,
-        ReceiptHandle: receiptHandle,
-      });
-      await this.sqsClient.send(command);
-    } catch (error: unknown) {
-      this.logger.error(
-        `Error deleting message from SQS: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    const command = new DeleteMessageCommand({
+      QueueUrl: this.queueUrl,
+      ReceiptHandle: receiptHandle,
+    });
+    await this.sqsClient.send(command);
   }
 }

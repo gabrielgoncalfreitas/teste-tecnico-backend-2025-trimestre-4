@@ -16,19 +16,12 @@ export class AddressService {
   async getAddress(cep: string, crawlId?: string): Promise<AddressData | null> {
     const logPrefix = crawlId ? `[CrawlID: ${crawlId}] ` : '';
 
-    try {
-      const address = await this.viaCep.getAddress(cep);
-      if (address) {
-        this.logger.log(
-          `${logPrefix}Success fetching CEP ${cep} via ${this.viaCep.getName()}`,
-        );
-        return address;
-      }
-    } catch (error: unknown) {
-      this.logger.error(
-        `${logPrefix}ViaCEP failed for ${cep}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    const address = await this.viaCep.getAddress(cep);
+    if (address) {
+      this.logger.log(
+        `${logPrefix}Success fetching CEP ${cep} via ${this.viaCep.getName()}`,
       );
-      return null;
+      return address;
     }
 
     this.logger.error(`${logPrefix}Address provider failed for CEP ${cep}`);
